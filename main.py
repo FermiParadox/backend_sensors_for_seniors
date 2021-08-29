@@ -1,29 +1,23 @@
 from fastapi import FastAPI, Path, HTTPException
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
 import uvicorn
 from starlette import status
 
 
 def raise_http_403(msg):
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                        detail=msg)
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
 
-homes_table = {
-}
-HOME_ID_BOUNDS_INCLUSIVE = 1, 10 ** 6
-HOME_ID_MIN_INCL, HOME_ID_MAX_INCL = HOME_ID_BOUNDS_INCLUSIVE
+homes_table = {}
 
-sensors_table = {
-}
+sensors_table = {}
 
-seniors_table = {
-}
+seniors_table = {}
 
 
 class Home(BaseModel):
-    homeId: int
+    homeId: PositiveInt
     name: str
     type: str
 
@@ -35,18 +29,18 @@ class Home(BaseModel):
 
 
 class Sensor(BaseModel):
-    sensorId: int
+    sensorId: PositiveInt
     hardwareVersion: str
     softwareVersion: str
 
 
 # TODO "Senior" -> "Patient"; "senior"/"sensor" too similar + hard to read; keep seniorId for client as is
 class Senior(BaseModel):
-    seniorId: int
+    seniorId: PositiveInt
     name: str
-    homeId: int
+    homeId: PositiveInt
     enabled: bool = False
-    sensorId: Optional[int] = None
+    sensorId: Optional[int] = 0
 
     @validator("homeId")
     def home_exists(cls, homeId):
@@ -116,7 +110,7 @@ def store_senior(new_senior: Senior):
     return {"Senior successfully added."}
 
 
-@app.post("/assign_sensor")
+@app.post("/assign-sensor")
 def assign_sensor(sensorId: int, seniorId: int):
     # TODO: check better searching way in mongoDB, AFTER adding mongoDB
     if seniorId not in seniors_table:
@@ -126,6 +120,15 @@ def assign_sensor(sensorId: int, seniorId: int):
         raise_http_403(msg=f"Sensor {sensorId} already belongs to a senior. Please try another one.")
     seniors_table[seniorId].sensorId = sensorId
     return {f"Sensor {sensorId} successfully assigned to senior {seniorId}."}
+
+
+@app.get("/senior/{seniorId}")
+def get_senior(seniorId: int):
+    if seniorId not in seniors_table:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Senior {seniorId} doesn't exist. Please register him first, then assign a sensor.")
+    return seniors_table[seniorId]
+
 
 
 if __name__ == "__main__":
