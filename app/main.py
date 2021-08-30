@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Path, HTTPException
 from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
-import uvicorn
 from starlette import status
+import uvicorn
 
 
 def raise_http_403(msg):
@@ -15,6 +15,12 @@ sensors_table = {}
 
 seniors_table = {}
 
+ALLOWED_HOME_TYPES = {"NURSING", "PRIVATE"}
+
+
+def _is_allowed_home_type(home_type):
+    return home_type in ALLOWED_HOME_TYPES
+
 
 class Home(BaseModel):
     homeId: PositiveInt
@@ -23,8 +29,8 @@ class Home(BaseModel):
 
     @validator("type")
     def type_allowed(cls, home_type):
-        if home_type != "NURSING" and home_type != "PRIVATE":
-            raise_http_403(msg=f'Home type can be either NURSING or PRIVATE.')
+        if not _is_allowed_home_type(home_type=home_type):
+            raise_http_403(msg=f"Home type can be either NURSING or PRIVATE ('{home_type}' not allowed).")
         return home_type
 
 
@@ -34,7 +40,7 @@ class Sensor(BaseModel):
     softwareVersion: str
 
 
-# TODO "Senior" -> "Patient"; "senior"/"sensor" too similar + hard to read; keep seniorId for client as is
+# TODO "Senior" -> "Patient"; "senior"/"sensor" too similar + hard to read; keep seniorId for clients as is
 class Senior(BaseModel):
     seniorId: PositiveInt
     name: str
@@ -72,22 +78,27 @@ def seniors():
 
 # TODO: consider removal (ask clarification); perhaps they want no GET to exist
 @app.get("/homes/{homeId}")
-def get_home(homeId: int = Path(None, description="The ID of the nursing/private home.",
-                                ge=HOME_ID_MIN_INCL, lt=HOME_ID_MAX_INCL)):
+def get_home(homeId=Path(None, description="The ID of the nursing/private home.")):
     if homeId not in homes_table:
         return {"Home ID not found."}
     return homes_table[homeId]
 
 
+PATH_STORE_HOME = '/store-home/'
+
+
 # TODO: consider removal (ask clarification); perhaps they want no GET to exist
-@app.post("/store-home/")
+@app.post(PATH_STORE_HOME)
 def store_home(newHome: Home):
     home_id = newHome.homeId
     homes_table.update({home_id: newHome})
     return {"Home successfully added."}
 
 
-@app.post("/store-sensor/")
+PATH_STORE_SENSOR = '/store-sensor/'
+
+
+@app.post(PATH_STORE_SENSOR)
 def store_sensor(newSensor: Sensor):
     sensor_id = newSensor.sensorId
     sensors_table.update({sensor_id: newSensor})
@@ -102,7 +113,10 @@ def _raise_if_sensor_defined_for_new_senior(sensor_id, senior_id):
     return sensor_id
 
 
-@app.post("/store-senior/")
+PATH_STORE_SENIOR = '/store-senior/'
+
+
+@app.post(PATH_STORE_SENIOR)
 def store_senior(new_senior: Senior):
     _raise_if_sensor_defined_for_new_senior(sensor_id=new_senior.sensorId, senior_id=new_senior.seniorId)
     senior_id = new_senior.seniorId
@@ -110,7 +124,10 @@ def store_senior(new_senior: Senior):
     return {"Senior successfully added."}
 
 
-@app.post("/assign-sensor")
+PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
+
+
+@app.post(PATH_ASSIGN_SENSOR_TO_SENIOR)
 def assign_sensor(sensorId: int, seniorId: int):
     # TODO: check better searching way in mongoDB, AFTER adding mongoDB
     if seniorId not in seniors_table:
@@ -128,7 +145,6 @@ def get_senior(seniorId: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Senior {seniorId} doesn't exist. Please register him first, then assign a sensor.")
     return seniors_table[seniorId]
-
 
 
 if __name__ == "__main__":
