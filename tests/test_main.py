@@ -11,14 +11,14 @@ class Test_store_home(TestCase):
         from app.main import PATH_STORE_HOME, ALLOWED_HOME_TYPES
         self.PATH_STORE_HOME = PATH_STORE_HOME
         self.ALLOWED_HOME_TYPES = ALLOWED_HOME_TYPES
-        self.home_id_test_name = 'skljtioutioq-_wtaklsjklasd asd'
+        self.home_test_name = 'skljtioutioq-_wtaklsjklasd asd'
         self.valid_home = {"homeId": 23897523,
-                           "name": self.home_id_test_name,
+                           "name": self.home_test_name,
                            "type": list(self.ALLOWED_HOME_TYPES)[0]}
         self.client = TestClient(app)
 
     def tearDown(self) -> None:
-        homes_table.delete_many({"name": self.home_id_test_name})
+        homes_table.delete_many({"name": self.home_test_name})
 
     def valid_home_deepcopy(self):
         return deepcopy(self.valid_home)
