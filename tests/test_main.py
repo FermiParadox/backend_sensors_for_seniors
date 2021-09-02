@@ -3,45 +3,67 @@ from copy import deepcopy
 from unittest import TestCase
 from fastapi.testclient import TestClient
 
-from app.main import app, homes_table
+from app.main import app, homes_table, sensors_table, seniors_table
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
-
-
-def delete_test_objects_in_db(key):
-    homes_table.delete_many({key: _DELETION_MARKER_STRING})
 
 
 class TestEntriesDeletionInDB(ABC):
     """Ensure database is not accidentally filled with test entries."""
 
     @property
+    @abstractmethod
+    def collection_name(self):
+        pass
+
+    def delete_test_objects_in_db(self, key):
+        self.collection_name.delete_many({key: _DELETION_MARKER_STRING})
+
+    @property
+    @abstractmethod
     def key_with_deletion_marker(self):
         """
         This key contains the deletion value marker in the database documents.
         On test-class tear-down all entries containing this key-name
         and the deletion-marker as a value, are deleted from the database.
+
+        WARNING: Make sure the selected key is mandatory, otherwise some entries might not be deleted,
+        due to how other methods work.
         """
         return ""
 
     def tearDown(self) -> None:
-        delete_test_objects_in_db(key=self.key_with_deletion_marker)
+        self.delete_test_objects_in_db(key=self.key_with_deletion_marker)
 
 
-class TestCaseWithDeletion(TestCase, TestEntriesDeletionInDB):
-    def _response(self, data, client, path):
+class TestCaseWithDeletion(TestEntriesDeletionInDB, TestCase):
+    """Implements methods used in most request-tests."""
+
+    def response(self, data, client, path):
         return client.post(path, json=data)
 
     def _assert_response_code_is_x(self, data, x, client, path):
-        response = self._response(data, client, path)
+        response = self.response(data, client, path)
         self.assertEqual(response.status_code, x, msg=str(response.json()))
 
     @abstractmethod
     def assert_response_code_is_x(self, data, x):
         pass
 
+    # Can't use @abstractmethod test_foo after _test_foo as before
+    # because it probably conflicts with how TestCase is implemented (methods starting with "test" are run) and raises:
+    # > TypeError: Can't instantiate abstract class TestCaseWithDeletion with abstract methods assert_response_code_is_x
+    def _test_not_enough_args(self, valid_body, valid_body_deepcopy_func):
+        for key in valid_body.keys():
+            d = valid_body_deepcopy_func()
+            d.pop(key)
+            self.assert_response_code_is_x(data=d, x=422)
+
 
 class TestStoreHome(TestCaseWithDeletion):
+    @property
+    def collection_name(self):
+        return homes_table
 
     @property
     def key_with_deletion_marker(self):
@@ -85,13 +107,46 @@ class TestStoreHome(TestCaseWithDeletion):
         self.assert_response_code_is_x(data=d, x=422)
 
     def test_not_enough_args(self):
-        for key in self.valid_home.keys():
-            d = self.valid_home_deepcopy()
-            d.pop(key)
-            self.assert_response_code_is_x(data=d, x=422)
+        self._test_not_enough_args(valid_body=self.valid_home,
+                                   valid_body_deepcopy_func=self.valid_home_deepcopy)
+
+
+class TestStoreSensor(TestCaseWithDeletion):
+    @property
+    def collection_name(self):
+        return sensors_table
+
+    @property
+    def key_with_deletion_marker(self):
+        return "hardwareVersion"
+
+    def setUp(self) -> None:
+        from app.main import PATH_STORE_SENSOR
+        self.PATH_STORE_SENSOR = PATH_STORE_SENSOR
+        self.client = TestClient(app)
+        self.valid_sensor = {'sensorId': 111,
+                             self.key_with_deletion_marker: _DELETION_MARKER_STRING,
+                             "softwareVersion": "1.5.15c"}
+
+    def assert_response_code_is_x(self, data, x):
+        return self._assert_response_code_is_x(data, x, client=self.client, path=self.PATH_STORE_SENSOR)
+
+    def valid_sensor_deepcopy(self):
+        return deepcopy(self.valid_sensor)
+
+    def test_successful(self):
+        self.assert_response_code_is_x(data=self.valid_sensor, x=201)
+
+    def test_not_enough_args(self):
+        self._test_not_enough_args(valid_body=self.valid_sensor,
+                                   valid_body_deepcopy_func=self.valid_sensor_deepcopy)
 
 
 class TestStoreSenior(TestCaseWithDeletion):
+    @property
+    def collection_name(self):
+        return seniors_table
+
     @property
     def key_with_deletion_marker(self):
         return "name"
@@ -125,11 +180,23 @@ class TestStoreSenior(TestCaseWithDeletion):
         d = self.valid_senior_deepcopy()
         d.update({'sensorId': 5})
         self.assert_response_code_is_x(data=d, x=201)
+        d.pop("sensorId")
+        match = seniors_table.find_one(d)
+        self.assertRaises(KeyError, lambda: match["sensorId"])
 
-    def test_mandatory_missing(self):
+    def test_enabled_is_false_by_default(self):
         d = self.valid_senior_deepcopy()
-        d.pop("enabled")
-        self.assert_response_code_is_x(data=d, x=422)
+        d["enabled"] = True
+        self.response(data=d, client=self.client, path=self.PATH_STORE_SENIOR)
+        match = seniors_table.find_one(d)
+        self.assertIsNone(match)
+        d["enabled"] = False
+        match = seniors_table.find_one(d)
+        self.assertIsNotNone(match)
+
+    def test_not_enough_args(self):
+        self._test_not_enough_args(valid_body=self.valid_senior,
+                                   valid_body_deepcopy_func=self.valid_senior_deepcopy)
 
 # TODO test token of Part II (if implemented):
 #   response = client.get("/items/foo", headers={"X-Token": "foo"})

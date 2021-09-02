@@ -70,24 +70,6 @@ class Senior(BaseModel):
 app = FastAPI()
 
 
-# TODO: consider removal (ask clarification); perhaps they want no GET to exist
-@app.get("/homes")
-def homes():
-    return str(list(homes_table.find({})))
-
-
-# TODO: consider removal (ask clarification); perhaps they want no GET to exist
-@app.get("/seniors")
-def seniors():
-    return str(list(seniors_table.find({})))
-
-
-# TODO: consider removal (ask clarification); perhaps they want no GET to exist
-@app.get("/sensors")
-def sensors():
-    return str(list(sensors_table.find({})))
-
-
 PATH_STORE_HOME = '/store-home/'
 
 
