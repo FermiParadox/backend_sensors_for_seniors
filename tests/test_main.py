@@ -6,6 +6,7 @@ from app.main import app
 
 class Test_store_home(TestCase):
     def setUp(self) -> None:
+        # (avoiding global import to prevent accidental bugs due to names' similarity)
         from app.main import PATH_STORE_HOME, ALLOWED_HOME_TYPES
         self.PATH_STORE_HOME = PATH_STORE_HOME
         self.ALLOWED_HOME_TYPES = ALLOWED_HOME_TYPES
@@ -16,16 +17,16 @@ class Test_store_home(TestCase):
                                json={"homeId": 1, "name": 'Clinic XY',
                                      "type": "Hospital"})
         response_code = response.status_code
-        self.assertEqual(response_code, 403, msg=str(response.json()))
+        self.assertEqual(response_code, 422, msg=str(response.json()))
 
-    def test_store_home_status200(self):
+    def test_store_home_successful(self):
         client = TestClient(app)
         for home_type in self.ALLOWED_HOME_TYPES:
             response = client.post(self.PATH_STORE_HOME,
                                    json={"homeId": 1, "name": 'Clinic XY',
                                          "type": home_type})
             response_code = response.status_code
-            self.assertEqual(response_code, 200, msg=str(response.json()))
+            self.assertEqual(response_code, 201, msg=str(response.json()))
 
 
 class Test_store_senior(TestCase):
@@ -34,8 +35,8 @@ class Test_store_senior(TestCase):
         self.PATH_STORE_SENIOR = PATH_STORE_SENIOR
 
     # TODO create database entries before testing; following works only when home1 is created (in previous test class)
-    #   remove entries after testing.
-    def test_store_senior_status200(self):
+    #   remove entries after testing. Or keep them indefinitely for testing purposes.
+    def test_store_senior_successful(self):
         client = TestClient(app)
         response = client.post(self.PATH_STORE_SENIOR,
                                json={'seniorId': 111,
@@ -44,7 +45,7 @@ class Test_store_senior(TestCase):
                                      'enabled': False,
                                      'sensorId': 0})
         response_code = response.status_code
-        self.assertEqual(response_code, 200, msg=str(response.json()))
+        self.assertEqual(response_code, 201, msg=str(response.json()))
 
     def test_store_senior_at_non_existing_home(self):
         client = TestClient(app)
@@ -55,7 +56,7 @@ class Test_store_senior(TestCase):
                                      'enabled': False,
                                      'sensorId': 0})
         response_code = response.status_code
-        self.assertEqual(response_code, 403, msg=str(response.json()))
+        self.assertEqual(response_code, 422, msg=str(response.json()))
 
 
 # TODO test token of Part II (if implemented):
