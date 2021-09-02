@@ -18,7 +18,7 @@ class Test_store_home(TestCase):
         self.client = TestClient(app)
 
     def tearDown(self) -> None:
-        homes_table.delete_many({"homeId": self.home_id_test_name})
+        homes_table.delete_many({"name": self.home_id_test_name})
 
     def valid_home_deepcopy(self):
         return deepcopy(self.valid_home)
