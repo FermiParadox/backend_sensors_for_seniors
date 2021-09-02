@@ -4,6 +4,12 @@ from fastapi.testclient import TestClient
 
 from app.main import app, homes_table
 
+_DELETION_MARKER_STRING = 'sklj521tiorbWrtu745dgtioq-_wtaklsjklasd asd'
+
+
+def delete_test_objects_in_db(key):
+    homes_table.delete_many({key: _DELETION_MARKER_STRING})
+
 
 class Test_store_home(TestCase):
     def setUp(self) -> None:
@@ -11,14 +17,14 @@ class Test_store_home(TestCase):
         from app.main import PATH_STORE_HOME, ALLOWED_HOME_TYPES
         self.PATH_STORE_HOME = PATH_STORE_HOME
         self.ALLOWED_HOME_TYPES = ALLOWED_HOME_TYPES
-        self.home_test_name = 'skljtioutioq-_wtaklsjklasd asd'
         self.valid_home = {"homeId": 23897523,
-                           "name": self.home_test_name,
+                           "name": _DELETION_MARKER_STRING,
                            "type": list(self.ALLOWED_HOME_TYPES)[0]}
         self.client = TestClient(app)
 
+    # TODO consider placing at end of file; method repeats after each test otherwise
     def tearDown(self) -> None:
-        homes_table.delete_many({"name": self.home_test_name})
+        delete_test_objects_in_db(key="name")
 
     def valid_home_deepcopy(self):
         return deepcopy(self.valid_home)
@@ -64,13 +70,16 @@ class Test_store_senior(TestCase):
         self.PATH_STORE_SENIOR = PATH_STORE_SENIOR
         self.valid_senior = {'seniorId': 111,
                              'name': 'Smith',
-                             'homeId': 1,
-                             'enabled': False,
-                             'sensorId': 0}
+                             'homeId': 1}
+        self.valid_senior_with_ignored_args = {'seniorId': 111,
+                                               'name': 'Smith',
+                                               'homeId': 1,
+                                               'enabled': False,
+                                               'sensorId': 0}
 
     # TODO create database entries before testing; following works only when home1 is created (in previous test class)
     #   remove entries after testing. Or keep them indefinitely for testing purposes.
-    def test_store_senior_successful(self):
+    def test_successful(self):
         client = TestClient(app)
         response = client.post(self.PATH_STORE_SENIOR,
                                json={'seniorId': 111,
@@ -81,7 +90,7 @@ class Test_store_senior(TestCase):
         response_code = response.status_code
         self.assertEqual(response_code, 201, msg=str(response.json()))
 
-    def test_store_senior_at_non_existing_home(self):
+    def test_store_at_non_existing_home(self):
         client = TestClient(app)
         response = client.post(self.PATH_STORE_SENIOR,
                                json={'seniorId': 111,
