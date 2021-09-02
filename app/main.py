@@ -91,7 +91,6 @@ def sensors():
 PATH_STORE_HOME = '/store-home/'
 
 
-# TODO: consider removal (ask clarification); perhaps they want no GET to exist
 @app.post(PATH_STORE_HOME)
 def store_home(newHome: Home):
     homes_table.insert_one(newHome.dict())
@@ -136,7 +135,7 @@ def assign_sensor(sensorId: int, seniorId: int):
 
 def _raise_if_sensor_already_assigned(sensorId):
     if seniors_table.find_one({"sensorId": sensorId}):
-        _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior. Please try another one.")
+        _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior. Please try another sensor.")
 
 
 def _raise_if_senior_doesnt_exist(seniorId):
