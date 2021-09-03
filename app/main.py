@@ -1,5 +1,5 @@
 import pymongo as pymongo
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
 from starlette import status
@@ -14,7 +14,7 @@ except ImportError:
     print("Please contact me for access or change the values in the code manually.")
     # CHANGE THESE MANUALLY:
     PASS_MONGO_DB_USER0 = "not-actual-password"
-    KEY_VALUE_PAIR_PART2 = {"not-actual-key": "not-actual-value"}
+    KEY_VALUE_PAIR_PART2 = ("not-actual-key", "not-actual-value")
     raise NotImplementedError
 
 
@@ -63,38 +63,35 @@ class Senior(BaseModel):
     enabled: bool
     sensorId: Optional[int] = 0
 
-    @validator("homeId")
-    def home_exists(cls, homeId):
-        if not homes_table.find_one({"homeId": homeId}):
-            _raise_http_422(
-                msg=f"Can't assign senior to home ID {homeId} (home doesn't exist). Please try another one.")
-        return homeId
-
 
 app = FastAPI()
 
-PATH_STORE_HOME = '/store-home/'
-PATH_STORE_SENSOR = '/store-sensor/'
-PATH_STORE_SENIOR = '/store-senior/'
-PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor/"
-PATH_GET_SENIOR = "/get-senior/"
+PATH_STORE_HOME = '/store-home'
+PATH_STORE_SENSOR = '/store-sensor'
+PATH_STORE_SENIOR = '/store-senior'
+PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
+PATH_GET_SENIOR = "/get-senior"
 
 
 @app.post(PATH_STORE_HOME)
-def store_home(newHome: Home):
+async def store_home(newHome: Home, req: Request):
+    raise_if_no_header_api_key(req)
     homes_table.insert_one(newHome.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newHome.dict())
 
 
 @app.post(PATH_STORE_SENSOR)
-def store_sensor(newSensor: Sensor):
+async def store_sensor(newSensor: Sensor, req: Request):
+    raise_if_no_header_api_key(req)
     sensors_table.insert_one(newSensor.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSensor.dict())
 
 
 @app.post(PATH_STORE_SENIOR)
-def store_senior(newSenior: Senior):
+async def store_senior(newSenior: Senior, req: Request):
+    raise_if_no_header_api_key(req)
     d = newSenior.dict()
+    _raise_if_home_doesnt_exist(homeId=d["homeId"])
     # Ignore "enabled" and "sensorId"
     d["enabled"] = False
     if "sensorId" in d:
@@ -103,10 +100,17 @@ def store_senior(newSenior: Senior):
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSenior.dict())
 
 
+def _raise_if_home_doesnt_exist(homeId):
+    if not homes_table.find_one({"homeId": homeId}):
+        _raise_http_422(
+            msg=f"Can't assign senior to home ID {homeId} (home doesn't exist). Please try another one.")
+
+
 # TODO think carefully race-conditions here
 #   eg. user1 assigning sensors, while user2 changes tables: would mess _raise_...
 @app.put(PATH_ASSIGN_SENSOR_TO_SENIOR)
-def assign_sensor(sensorId: int, seniorId: int):
+async def assign_sensor(sensorId: int, seniorId: int, req: Request):
+    raise_if_no_header_api_key(req)
     _raise_if_senior_doesnt_exist(seniorId=seniorId)
     _raise_if_sensor_already_assigned(sensorId=sensorId)
     _raise_if_sensor_doesnt_exist(sensorId=sensorId)
@@ -135,13 +139,23 @@ def _raise_if_sensor_doesnt_exist(sensorId):
 
 
 @app.get(PATH_GET_SENIOR)
-def get_senior(seniorId: int):
+async def get_senior(seniorId: int, req: Request):
+    raise_if_no_header_api_key(req)
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Senior {seniorId} doesn't exist. Please register him first.")
-    d = seniors_table.find_one({"seniorId": seniorId})
-    d.pop('_id')
-    return d
+    match = seniors_table.find_one({"seniorId": seniorId})
+    match.pop('_id')
+    return match
+
+
+def raise_if_no_header_api_key(req):
+    try:
+        if req.headers[KEY_VALUE_PAIR_PART2[0]] == KEY_VALUE_PAIR_PART2[1]:
+            return
+    except KeyError:
+        pass
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have the api-key.")
 
 
 if __name__ == "__main__":
