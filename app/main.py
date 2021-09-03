@@ -1,5 +1,5 @@
 import pymongo as pymongo
-from fastapi import FastAPI, Path, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
 from starlette import status
@@ -101,12 +101,12 @@ def store_senior(newSenior: Senior):
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSenior.dict())
 
 
-PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
+PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor/"
 
 
 # TODO think carefully race-conditions here
 #   eg. user1 assigning sensors, while user2 changes tables: would mess _raise_...
-@app.post(PATH_ASSIGN_SENSOR_TO_SENIOR)
+@app.put(PATH_ASSIGN_SENSOR_TO_SENIOR)
 def assign_sensor(sensorId: int, seniorId: int):
     _raise_if_senior_doesnt_exist(seniorId=seniorId)
     _raise_if_sensor_already_assigned(sensorId=sensorId)
@@ -135,7 +135,7 @@ def _raise_if_sensor_doesnt_exist(sensorId):
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
 
-@app.get("/senior/{seniorId}")
+@app.get("/senior/{seniorId}/")
 def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
