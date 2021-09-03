@@ -6,12 +6,16 @@ from starlette import status
 import uvicorn
 from starlette.responses import JSONResponse
 
-# MongoDB password
+# Load secrets
 try:
     from app.IGNORE_GIT_SECRETS import PASS_MONGO_DB_USER0
 except ImportError:
-    print("The file containing the pass for the DB is not uploaded on Git. Please contact me for access.")
-    PASS_MONGO_DB_USER0 = "NotTheRealPassword"
+    print("The file containing secrets (DB password, api-key, etc.) is not uploaded on Git.")
+    print("Please contact me for access or change the values in the code manually.")
+    # CHANGE THESE MANUALLY:
+    PASS_MONGO_DB_USER0 = "not-actual-password"
+    KEY_VALUE_PAIR_PART2 = {"not-actual-key": "not-actual-value"}
+    raise NotImplementedError
 
 
 def _raise_http_422(msg):
@@ -69,8 +73,11 @@ class Senior(BaseModel):
 
 app = FastAPI()
 
-
 PATH_STORE_HOME = '/store-home/'
+PATH_STORE_SENSOR = '/store-sensor/'
+PATH_STORE_SENIOR = '/store-senior/'
+PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor/"
+PATH_GET_SENIOR = "/get-senior/"
 
 
 @app.post(PATH_STORE_HOME)
@@ -79,29 +86,21 @@ def store_home(newHome: Home):
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newHome.dict())
 
 
-PATH_STORE_SENSOR = '/store-sensor/'
-
-
 @app.post(PATH_STORE_SENSOR)
 def store_sensor(newSensor: Sensor):
     sensors_table.insert_one(newSensor.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSensor.dict())
 
 
-PATH_STORE_SENIOR = '/store-senior/'
-
-
 @app.post(PATH_STORE_SENIOR)
 def store_senior(newSenior: Senior):
     d = newSenior.dict()
+    # Ignore "enabled" and "sensorId"
     d["enabled"] = False
     if "sensorId" in d:
         d.pop("sensorId")
     seniors_table.insert_one(d)
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSenior.dict())
-
-
-PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor/"
 
 
 # TODO think carefully race-conditions here
@@ -135,7 +134,7 @@ def _raise_if_sensor_doesnt_exist(sensorId):
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
 
-@app.get("/senior/{seniorId}/")
+@app.get(PATH_GET_SENIOR)
 def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
