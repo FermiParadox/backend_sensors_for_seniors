@@ -6,7 +6,9 @@ from pydantic import BaseModel, PositiveInt
 from typing import Optional
 from starlette import status
 import uvicorn
-from app.secret_handler import PASS_MONGO_DB_USER0, KEY_VALUE_PAIR_PART2
+from app.secret_handler import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR
+
+API_KEY, API_VALUE = list(API_KEY_VALUE_PAIR.items())[0]
 
 
 def _raise_http_422(msg):
@@ -129,7 +131,7 @@ async def get_jwt_cookie():
 @app.middleware("http")
 async def middleware_header_api_key(req: Request, call_next):
     try:
-        if req.headers[KEY_VALUE_PAIR_PART2[0]] == KEY_VALUE_PAIR_PART2[1]:
+        if req.headers[API_KEY] == API_VALUE:
             response = await call_next(req)
             return response
     except KeyError:

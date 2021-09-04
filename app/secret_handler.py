@@ -1,6 +1,6 @@
 # Load secrets
 try:
-    from app.IGNORE_GIT_SECRETS import PASS_MONGO_DB_USER0, KEY_VALUE_PAIR_PART2
+    from app.IGNORE_GIT_SECRETS import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR
 except ImportError:
     # CHANGE THESE MANUALLY:
     PASS_MONGO_DB_USER0 = "not-actual-password"
