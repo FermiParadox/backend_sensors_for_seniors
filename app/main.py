@@ -1,10 +1,12 @@
+from pprint import pprint
+
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
+from starlette.responses import JSONResponse, Response
 from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
 from starlette import status
 import uvicorn
-from starlette.responses import JSONResponse
 from app.secret_handler import PASS_MONGO_DB_USER0, KEY_VALUE_PAIR_PART2
 
 
@@ -30,13 +32,9 @@ class Home(BaseModel):
 
     @validator("type")
     def type_allowed(cls, home_type):
-        if not _is_allowed_home_type(home_type=home_type):
+        if home_type not in ALLOWED_HOME_TYPES:
             _raise_http_422(msg=f"Home type can be either NURSING or PRIVATE ('{home_type}' not allowed).")
         return home_type
-
-
-def _is_allowed_home_type(home_type):
-    return home_type in ALLOWED_HOME_TYPES
 
 
 class Sensor(BaseModel):
@@ -61,27 +59,25 @@ PATH_STORE_SENSOR = '/store-sensor'
 PATH_STORE_SENIOR = '/store-senior'
 PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
+PATH_GET_JWT_COOKIE = "/get-jwt-cookie"
 
 
 @app.post(PATH_STORE_HOME)
-async def store_home(newHome: Home, req: Request):
-    raise_if_no_header_api_key(req)
+async def store_home(newHome: Home):
     homes_table.insert_one(newHome.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newHome.dict())
 
 
 @app.post(PATH_STORE_SENSOR)
-async def store_sensor(newSensor: Sensor, req: Request):
-    raise_if_no_header_api_key(req)
+async def store_sensor(newSensor: Sensor):
     sensors_table.insert_one(newSensor.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSensor.dict())
 
 
 @app.post(PATH_STORE_SENIOR)
-async def store_senior(newSenior: Senior, req: Request):
-    raise_if_no_header_api_key(req)
+async def store_senior(newSenior: Senior):
     d = newSenior.dict()
-    _raise_if_home_doesnt_exist(homeId=d["homeId"])
+    await _raise_if_home_doesnt_exist(homeId=d["homeId"])
     # Ignore "enabled" and "sensorId"
     d["enabled"] = False
     if "sensorId" in d:
@@ -90,62 +86,63 @@ async def store_senior(newSenior: Senior, req: Request):
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSenior.dict())
 
 
-def _raise_if_home_doesnt_exist(homeId):
+async def _raise_if_home_doesnt_exist(homeId):
     if not homes_table.find_one({"homeId": homeId}):
         _raise_http_422(
-            msg=f"Can't assign senior to home ID {homeId} (home doesn't exist). Please try another one.")
+            msg=f"Can't assign senior to home ID {homeId} (home doesn't exist).")
 
 
 # TODO think carefully race-conditions here
 #   eg. user1 assigning sensors, while user2 changes tables: would mess _raise_...
 @app.put(PATH_ASSIGN_SENSOR_TO_SENIOR)
-async def assign_sensor(sensorId: int, seniorId: int, req: Request):
-    raise_if_no_header_api_key(req)
-    _raise_if_senior_doesnt_exist(seniorId=seniorId)
-    _raise_if_sensor_already_assigned(sensorId=sensorId)
-    _raise_if_sensor_doesnt_exist(sensorId=sensorId)
+async def assign_sensor(sensorId: int, seniorId: int):
+    await _raise_if_senior_doesnt_exist(seniorId=seniorId)
+    await _raise_if_sensor_already_assigned(sensorId=sensorId)
+    await _raise_if_sensor_doesnt_exist(sensorId=sensorId)
     seniors_table.find_one_and_update({"seniorId": seniorId}, {"$set": {"sensorId": sensorId}})
     return {f"Sensor {sensorId} assigned to senior {seniorId}."}
 
 
-def _raise_if_sensor_already_assigned(sensorId):
+async def _raise_if_sensor_already_assigned(sensorId):
     if seniors_table.find_one({"sensorId": sensorId}):
-        _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior. Please try another sensor.")
+        _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior.")
 
 
-def _raise_if_senior_doesnt_exist(seniorId):
+async def _raise_if_senior_doesnt_exist(seniorId):
     if not seniors_table.find_one({"seniorId": seniorId}):
         _raise_http_422(msg=f"Senior {seniorId} doesn't exist. Please register him first, then assign a sensor.")
 
 
-def _raise_if_sensor_defined_for_unregistered_senior(senior_id):
-    if seniors_table.find_one({"seniorId": senior_id}):
-        _raise_http_422(msg="Defining sensor ID upon senior creation is forbidden.")
-
-
-def _raise_if_sensor_doesnt_exist(sensorId):
+async def _raise_if_sensor_doesnt_exist(sensorId):
     if not sensors_table.find_one({"sensorId": sensorId}):
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
 
 @app.get(PATH_GET_SENIOR)
-async def get_senior(seniorId: int, req: Request):
-    raise_if_no_header_api_key(req)
+async def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Senior {seniorId} doesn't exist. Please register him first.")
+                            detail=f"Senior {seniorId} doesn't exist.")
     match = seniors_table.find_one({"seniorId": seniorId})
     match.pop('_id')
     return match
 
 
-def raise_if_no_header_api_key(req):
+@app.get(PATH_GET_JWT_COOKIE)
+async def get_jwt_cookie():
+    return "Cookie created."
+
+
+@app.middleware("http")
+async def middleware_header_api_key(req: Request, call_next):
     try:
         if req.headers[KEY_VALUE_PAIR_PART2[0]] == KEY_VALUE_PAIR_PART2[1]:
-            return
+            response = await call_next(req)
+            return response
     except KeyError:
         pass
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have the api-key.")
+
+    return Response(status_code=401)
 
 
 if __name__ == "__main__":

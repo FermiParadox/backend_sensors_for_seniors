@@ -211,6 +211,7 @@ class TestStoreSenior(TestCaseWithDeletion):
         match = seniors_table.find_one(d)
         self.assertRaises(KeyError, lambda: match["sensorId"])
 
+    # prone to error; when everything is locked with 401 this incorrectly passes
     def test_enabled_is_false_by_default(self):
         d = self.valid_body_deepcopy()
         d["enabled"] = True
@@ -253,7 +254,7 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
                                         r_type='put')
 
     # Manual testing works fine. This returns 422. Don't know why
-    def DISABLED_test_successful(self):
+    def test_successful(self):
         from app.main import PATH_STORE_SENIOR, PATH_STORE_SENSOR
         self.client.post(url=PATH_STORE_SENIOR, json=self.SENIOR_EXAMPLE)
         self.client.post(url=PATH_STORE_SENSOR, json=self.SENSOR_EXAMPLE)
