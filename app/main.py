@@ -1,7 +1,6 @@
-from pprint import pprint
-
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
+from pydantic.validators import Literal
 from starlette.responses import JSONResponse, Response
 from pydantic import BaseModel, validator, PositiveInt
 from typing import Optional
@@ -22,19 +21,13 @@ homes_table = db['homes']
 sensors_table = db['sensors']
 seniors_table = db['seniors']
 
-ALLOWED_HOME_TYPES = {"NURSING", "PRIVATE"}
+ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
 
 
 class Home(BaseModel):
     homeId: PositiveInt
     name: str
-    type: str
-
-    @validator("type")
-    def type_allowed(cls, home_type):
-        if home_type not in ALLOWED_HOME_TYPES:
-            _raise_http_422(msg=f"Home type can be either NURSING or PRIVATE ('{home_type}' not allowed).")
-        return home_type
+    type: Literal[ALLOWED_HOME_TYPES]
 
 
 class Sensor(BaseModel):
@@ -130,7 +123,7 @@ async def get_senior(seniorId: int):
 
 @app.get(PATH_GET_JWT_COOKIE)
 async def get_jwt_cookie():
-    return "Cookie created."
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Cookie created.")
 
 
 @app.middleware("http")
