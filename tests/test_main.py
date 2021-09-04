@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from json import JSONDecodeError
 from unittest import TestCase
 from fastapi.testclient import TestClient
 
@@ -37,31 +38,41 @@ class TestEntriesDeletionInDB(ABC):
         self.delete_test_objects_in_db(key=self.key_with_deletion_marker_value)
 
 
-def post_response(data, client: TestClient, path):
-    return client.post(url=path, json=data, headers=API_KEY_VALUE_PAIR)
+def post_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+    return client.post(url=path, json=data, headers=headers)
 
 
-def put_response(data, client: TestClient, path):
-    return client.put(url=path, json=data, headers=API_KEY_VALUE_PAIR)
+def put_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+    return client.put(url=path, json=data, headers=headers)
 
 
-def get_response(data, client: TestClient, path):
-    return client.get(url=path, json=data, headers=API_KEY_VALUE_PAIR)
+def get_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+    return client.get(url=path, json=data, headers=headers)
+
+
+def response_(r_type):
+    if r_type == 'post':
+        r = post_response
+    elif r_type == 'put':
+        r = put_response
+    elif r_type == 'get':
+        r = get_response
+    else:
+        raise NotImplementedError
+    return r
 
 
 class TestCaseWithDeletion(TestEntriesDeletionInDB, TestCase):
     """Implements methods used in most request-tests."""
 
-    def _assert_response_code_is_x(self, data, x: int, client, path, r_type):
-        if r_type == 'post':
-            r = post_response(data=data, client=client, path=path)
-        elif r_type == 'put':
-            r = put_response(data=data, client=client, path=path)
-        elif r_type == 'get':
-            r = get_response(data=data, client=client, path=path)
-        else:
-            raise NotImplementedError
-        self.assertEqual(r.status_code, x, msg=str(r.json()))
+    def _assert_response_code_is_x(self, data, x: int, client, path, r_type, headers=API_KEY_VALUE_PAIR):
+        resp_func = response_(r_type=r_type)
+        resp = resp_func(data=data, client=client, path=path, headers=headers)
+        try:
+            msg = resp.json()
+        except JSONDecodeError:
+            msg = ''
+        self.assertEqual(x, resp.status_code, msg=msg)
 
     @abstractmethod
     def assert_response_code_is_x(self, data, x):
@@ -72,7 +83,8 @@ class TestCaseWithDeletion(TestEntriesDeletionInDB, TestCase):
         pass
 
     # SIDE-NOTE: Can't use @abstractmethod test_foo after _test_foo as before
-    # because it probably conflicts with how TestCase is implemented (methods starting with "test" are run) and raises:
+    # because it probably conflicts with how TestCase is implemented 
+    # (methods starting with "test.." are run) and raises:
     # > TypeError: Can't instantiate abstract class TestCaseWithDeletion with abstract methods assert_response_code_is_x
     def _test_not_enough_args(self, valid_body):
         for key in valid_body.keys():
@@ -132,6 +144,11 @@ class TestStoreHome(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_home)
 
+    def test_unauthorized(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_HOME, r_type='post',
+                                        headers={})
+
 
 class TestStoreSensor(TestCaseWithDeletion):
     VALID_SENSOR_EXAMPLE = {
@@ -165,6 +182,11 @@ class TestStoreSensor(TestCaseWithDeletion):
 
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_body)
+
+    def test_unauthorized(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_SENSOR, r_type='post',
+                                        headers={})
 
 
 class TestStoreSenior(TestCaseWithDeletion):
@@ -226,9 +248,15 @@ class TestStoreSenior(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_senior)
 
+    def test_unauthorized(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_SENIOR, r_type='post',
+                                        headers={})
+
 
 # TODO find bug (might be in FastAPI); manual tests work fine, 1 test here fails.
 class TestAssignSensorToSenior(TestCaseWithDeletion):
+    from app.main import PATH_ASSIGN_SENSOR_TO_SENIOR
     SENIOR_EXAMPLE = TestStoreSenior.VALID_SENIOR_EXAMPLE
     SENSOR_EXAMPLE = TestStoreSensor.VALID_SENSOR_EXAMPLE
     # It's valid only if the previous entries exist
@@ -250,8 +278,8 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
         self.client = TestClient(app)
 
     def assert_response_code_is_x(self, data, x):
-        from app.main import PATH_ASSIGN_SENSOR_TO_SENIOR
-        self._assert_response_code_is_x(data=data, x=x, client=self.client, path=PATH_ASSIGN_SENSOR_TO_SENIOR,
+        self._assert_response_code_is_x(data=data, x=x, client=self.client,
+                                        path=self.PATH_ASSIGN_SENSOR_TO_SENIOR,
                                         r_type='put')
 
     # Manual testing works fine. This returns 422. Don't know why
@@ -263,6 +291,12 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
 
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE)
+
+    def test_unauthorized(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client,
+                                        path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='put',
+                                        headers={})
 
 
 # TODO find bug (might be in FastAPI); manual tests work fine, 1 test here fails.
