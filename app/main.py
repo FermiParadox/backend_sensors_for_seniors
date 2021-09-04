@@ -2,7 +2,7 @@ import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
 from pydantic.validators import Literal
 from starlette.responses import JSONResponse, Response
-from pydantic import BaseModel, validator, PositiveInt
+from pydantic import BaseModel, PositiveInt
 from typing import Optional
 from starlette import status
 import uvicorn
