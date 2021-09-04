@@ -5,17 +5,7 @@ from typing import Optional
 from starlette import status
 import uvicorn
 from starlette.responses import JSONResponse
-
-# Load secrets
-try:
-    from app.IGNORE_GIT_SECRETS import PASS_MONGO_DB_USER0, KEY_VALUE_PAIR_PART2
-except ImportError:
-    print("The file containing secrets (DB password, api-key, etc.) is not uploaded on Git.")
-    print("Please contact me for access or change the values in the code manually.")
-    # CHANGE THESE MANUALLY:
-    PASS_MONGO_DB_USER0 = "not-actual-password"
-    KEY_VALUE_PAIR_PART2 = ("not-actual-key", "not-actual-value")
-    raise NotImplementedError
+from app.secret_handler import PASS_MONGO_DB_USER0, KEY_VALUE_PAIR_PART2
 
 
 def _raise_http_422(msg):
