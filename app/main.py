@@ -3,9 +3,10 @@ from datetime import datetime, timedelta
 import jwt
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
+from pydantic.types import conint
 from pydantic.validators import Literal
 from starlette.responses import JSONResponse, Response
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel
 from typing import Optional
 from starlette import status
 import uvicorn
@@ -32,31 +33,34 @@ seniors_table = db['seniors']
 
 ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
 
+MONGODB_INT_UPPER_LIM = 2 ** 31
+ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
+
 
 class Home(BaseModel):
-    homeId: PositiveInt
+    homeId: ConstrainedIntMongo
     name: str
     type: Literal[ALLOWED_HOME_TYPES]
 
 
 class Sensor(BaseModel):
-    sensorId: PositiveInt
+    sensorId: ConstrainedIntMongo
     hardwareVersion: str
     softwareVersion: str
 
 
 # TODO "Senior" -> "Patient"; "senior"/"sensor" too similar + hard to read; keep seniorId for clients as is
 class Senior(BaseModel):
-    seniorId: PositiveInt
+    seniorId: ConstrainedIntMongo
     name: str
-    homeId: PositiveInt
+    homeId: ConstrainedIntMongo
     enabled: bool
     sensorId: Optional[int] = 0
 
 
 class SensorAssignment(BaseModel):
-    seniorId: PositiveInt
-    sensorId: PositiveInt
+    seniorId: ConstrainedIntMongo
+    sensorId: ConstrainedIntMongo
 
 
 app = FastAPI()
@@ -147,7 +151,7 @@ async def get_jwt_cookie():
 def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
     expiration = datetime.utcnow() + timedelta(hours=duration_h)
     d = {"username": JWT_USER_NAME, "exp": expiration}
-    # (function output tested here: https://jwt.io/ )
+    # (function output tested here: https://jwt.io/ ; displays local time)
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -171,7 +175,7 @@ async def middleware_header_api_key(req: Request, call_next):
 
 
 @app.middleware("http")
-async def middleware_header_api_key(req: Request, call_next):
+async def middleware_jwt(req: Request, call_next):
     if not JWT_MIDDLEWARE_ACTIVE:
         return await call_next(req)
 
