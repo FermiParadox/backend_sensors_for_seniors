@@ -254,14 +254,13 @@ class TestStoreSenior(TestCaseWithDeletion):
                                         headers={})
 
 
-# TODO find bug (might be in FastAPI); manual tests work fine, 1 test here fails.
 class TestAssignSensorToSenior(TestCaseWithDeletion):
     from app.main import PATH_ASSIGN_SENSOR_TO_SENIOR
     SENIOR_EXAMPLE = TestStoreSenior.VALID_SENIOR_EXAMPLE
     SENSOR_EXAMPLE = TestStoreSensor.VALID_SENSOR_EXAMPLE
     # It's valid only if the previous entries exist
-    VALID_SENSOR_ASSIGNMENT_EXAMPLE = {"seniorId": SENIOR_EXAMPLE["seniorId"],
-                                       "sensorId": SENSOR_EXAMPLE["sensorId"]}
+    VALID_SENSOR_ASSIGNMENT_EXAMPLE = {"seniorId": int(SENIOR_EXAMPLE["seniorId"]),
+                                       "sensorId": int(SENSOR_EXAMPLE["sensorId"])}
 
     @property
     def collection_name(self):
@@ -282,7 +281,8 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
                                         path=self.PATH_ASSIGN_SENSOR_TO_SENIOR,
                                         r_type='put')
 
-    # Manual testing works fine. This returns 422. Don't know why
+    # TODO find bug; manual tests work fine, this test fails.
+    #   test-documents are not stored on DB for unknown reasons.
     def DISABLED_test_successful(self):
         from app.main import PATH_STORE_SENIOR, PATH_STORE_SENSOR
         self.client.post(url=PATH_STORE_SENIOR, json=self.SENIOR_EXAMPLE)
@@ -299,7 +299,6 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
                                         headers={})
 
 
-# TODO find bug (might be in FastAPI); manual tests work fine, 1 test here fails.
 class TestGetSenior(TestCaseWithDeletion):
     @property
     def collection_name(self):
@@ -322,9 +321,13 @@ class TestGetSenior(TestCaseWithDeletion):
     def assert_response_code_is_x(self, data, x):
         return self._assert_response_code_is_x(data, x, client=self.client, path=self.PATH_GET_SENIOR, r_type='get')
 
-    def DISABLED_test_successful(self):
-        self.assert_response_code_is_x(data=self.valid_body_deepcopy(), x=200)
+    def test_successful(self):
+        # TODO make seniorID 111 insertion and deletion automatic inside this test
+        #   Currently it relies on 111 being there.
+        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 111}, headers=API_KEY_VALUE_PAIR)
+        self.assertEqual(200, r.status_code, msg="Insert seniorID 111 if you haven't.")
 
-# TODO test token of Part II (if implemented):
-#   response = client.get("/items/foo", headers={"X-Token": "foo"})
-#   (tutorial at https://fastapi.tiangolo.com/tutorial/testing/)
+    def test_non_existent(self):
+        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 1887678568511},
+                            headers=API_KEY_VALUE_PAIR)
+        self.assertEqual(404, r.status_code)

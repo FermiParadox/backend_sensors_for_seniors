@@ -47,6 +47,11 @@ class Senior(BaseModel):
     sensorId: Optional[int] = 0
 
 
+class SensorAssignment(BaseModel):
+    seniorId: PositiveInt
+    sensorId: PositiveInt
+
+
 app = FastAPI()
 
 PATH_STORE_HOME = '/store-home'
@@ -90,7 +95,10 @@ async def _raise_if_home_doesnt_exist(homeId):
 # TODO think carefully race-conditions here
 #   eg. user1 assigning sensors, while user2 changes tables: would mess _raise_...
 @app.put(PATH_ASSIGN_SENSOR_TO_SENIOR)
-async def assign_sensor(sensorId: int, seniorId: int):
+async def assign_sensor(sensorAssignment: SensorAssignment):
+    d = sensorAssignment.dict()
+    sensorId = d["sensorId"]
+    seniorId = d["seniorId"]
     await _raise_if_senior_doesnt_exist(seniorId=seniorId)
     await _raise_if_sensor_already_assigned(sensorId=sensorId)
     await _raise_if_sensor_doesnt_exist(sensorId=sensorId)
@@ -121,11 +129,6 @@ async def get_senior(seniorId: int):
     match = seniors_table.find_one({"seniorId": seniorId})
     match.pop('_id')
     return match
-
-
-@app.get(PATH_GET_JWT_COOKIE)
-async def get_jwt_cookie():
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Cookie created.")
 
 
 @app.middleware("http")
