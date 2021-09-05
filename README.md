@@ -4,6 +4,7 @@ Install all `requirements.txt` and run:
 in the project folder.
 
 You can use Postman for the requests.
+https://www.getpostman.com/collections/d19173f68f3128c4a7a3
 
 ### Middlewares
 Api-key middleware covers all endpoints.
