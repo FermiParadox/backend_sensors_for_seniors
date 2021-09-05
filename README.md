@@ -1,4 +1,7 @@
 # To run it
+You need MongoDB and you have to edit the DB link in `main.py`. 
+Or you can contact me and I will give you access to my DB.
+
 Install all `requirements.txt` and run:   
 `$ uvicorn app.main:app --reload`
 in the project folder.
