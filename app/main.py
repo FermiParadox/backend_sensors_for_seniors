@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+import jwt
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
 from pydantic.validators import Literal
@@ -6,9 +9,13 @@ from pydantic import BaseModel, PositiveInt
 from typing import Optional
 from starlette import status
 import uvicorn
-from app.secret_handler import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR
+from app.secret_handler import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
 
 API_KEY, API_VALUE = list(API_KEY_VALUE_PAIR.items())[0]
+
+JWT_USER_NAME = "backend-SW-Engineer-Candidate"
+JWT_TOKEN_DURATION_HOURS = 1
+JWT_ALGORITHM = "HS256"
 
 
 def _raise_http_422(msg):
@@ -59,7 +66,7 @@ PATH_STORE_SENSOR = '/store-sensor'
 PATH_STORE_SENIOR = '/store-senior'
 PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
-PATH_GET_JWT_COOKIE = "/get-jwt-cookie"
+PATH_GET_JWT = "/get-jwt-cookie"
 
 
 @app.post(PATH_STORE_HOME)
@@ -131,8 +138,28 @@ async def get_senior(seniorId: int):
     return match
 
 
+@app.get(PATH_GET_JWT)
+async def get_jwt_cookie():
+    # eg. headers = {"X-Token": "foo"} ?
+    return JSONResponse(status_code=status.HTTP_201_CREATED, headers={"token": signed_jwt_token()})
+
+
+def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
+    expiration = datetime.utcnow() + timedelta(hours=duration_h)
+    d = {"username": JWT_USER_NAME, "exp": expiration}
+    # (function output tested here: https://jwt.io/ )
+    return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
+
+
+APIKEY_MIDDLEWARE_ACTIVE = 1
+JWT_MIDDLEWARE_ACTIVE = 1
+
+
 @app.middleware("http")
 async def middleware_header_api_key(req: Request, call_next):
+    if not APIKEY_MIDDLEWARE_ACTIVE:
+        return await call_next(req)
+
     try:
         if req.headers[API_KEY] == API_VALUE:
             response = await call_next(req)
@@ -140,7 +167,38 @@ async def middleware_header_api_key(req: Request, call_next):
     except KeyError:
         pass
 
-    return Response(status_code=401)
+    return Response(status_code=401, content="Api-key in headers missing or incorrect.")
+
+
+@app.middleware("http")
+async def middleware_header_api_key(req: Request, call_next):
+    if not JWT_MIDDLEWARE_ACTIVE:
+        return await call_next(req)
+
+    # Middleware disabled for path providing it.
+    if endpoint_path_matches(PATH_GET_JWT, req=req):
+        return await call_next(req)
+
+    headers = req.headers
+    if "token" not in headers:
+        return Response(status_code=401, content="No 'token' key in headers.")
+
+    token = headers["token"]
+    try:
+        decoded_token = jwt.decode(token, key=JWT_PRIVATE_KEY, algorithms=JWT_ALGORITHM)
+        if token_user_correct(t=decoded_token):
+            return await call_next(req)
+    except jwt.PyJWTError:
+        pass
+    return Response(status_code=401, content='Token failed.')
+
+
+def endpoint_path_matches(endpoint_path, req):
+    return req.url == str(req.base_url).rstrip('/') + endpoint_path
+
+
+def token_user_correct(t):
+    return t["username"] == JWT_USER_NAME
 
 
 if __name__ == "__main__":
