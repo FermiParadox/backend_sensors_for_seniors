@@ -11,12 +11,10 @@ from typing import Optional
 from starlette import status
 import uvicorn
 from app.secret_handler import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
+from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_TOKEN_DURATION_HOURS, \
+    JWT_ALGORITHM
 
 API_KEY, API_VALUE = list(API_KEY_VALUE_PAIR.items())[0]
-
-JWT_USER_NAME = "backend-SW-Engineer-Candidate"
-JWT_TOKEN_DURATION_HOURS = 1
-JWT_ALGORITHM = "HS256"
 
 
 def _raise_http_422(msg):
@@ -153,10 +151,6 @@ def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
     d = {"username": JWT_USER_NAME, "exp": expiration}
     # (function output tested here: https://jwt.io/ ; displays local time)
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
-
-
-APIKEY_MIDDLEWARE_ACTIVE = 1
-JWT_MIDDLEWARE_ACTIVE = 1
 
 
 @app.middleware("http")
