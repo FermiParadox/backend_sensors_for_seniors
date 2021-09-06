@@ -9,10 +9,9 @@ in the project folder.
 You can use Postman for the requests.
 
 
-### Secrets not stored on Git
+### Secrets (passwords, api-keys, etc.) not stored on Git
 File with secrets is ignored on commits.   
-Please edit `configuration.py` to set the correct 
-passwords.
+Please edit `configuration.py` to set the correct values.
 
 
 ### Middlewares
