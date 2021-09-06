@@ -208,7 +208,15 @@ async def middleware_jwt(req: Request, call_next):
     return Response(status_code=401, content='Token failed.')
 
 
-def endpoint_path_matches(endpoint_path, req):
+def endpoint_path_matches(endpoint_path, req) -> bool:
+    """Compare requested path with stored endpoint path.
+
+    If this is matched:
+    > http://127.0.0.1:8000/get-senior
+
+    then this is matched as well:
+    http://127.0.0.1:8000/get-senior?seniorId=5
+    """
     requested_path = str(req.url)
     p = str(req.base_url).rstrip('/') + endpoint_path
     return requested_path.startswith(p)
