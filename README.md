@@ -8,10 +8,12 @@ in the project folder.
 
 You can use Postman for the requests.
 
+## Endpoints
+![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
+
+
 ### Middlewares
-Api-key middleware covers all endpoints.
-JWT middleware covers all except token provider 
-endpoint.
+Api-key middleware and JWT middleware cover endpoints 1-5.
 
 Both middlewares are active by default. 
 They can be disabled in `configuration.py`. 
@@ -37,4 +39,7 @@ I can make them work with it as well if needed.
 Some functions are prone to race-conditions when eg.: 
 - 2 nurses assign same sensor
 - or 1 nurse assigns while other changes table
+
+### Async mongoDB
+It hasn't been implemented. I can do so if needed.
 
