@@ -68,7 +68,7 @@ PATH_STORE_SENSOR = '/store-sensor'
 PATH_STORE_SENIOR = '/store-senior'
 PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
-PATH_GET_JWT = "/get-jwt-cookie"
+PATH_GET_JWT = "/create-jwt"
 
 
 @app.post(PATH_STORE_HOME)
@@ -92,7 +92,8 @@ async def store_senior(newSenior: Senior):
     if "sensorId" in d:
         d.pop("sensorId")
     seniors_table.insert_one(d)
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSenior.dict())
+    d.pop("_id")
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content=d)
 
 
 async def _raise_if_home_doesnt_exist(homeId):
@@ -141,7 +142,7 @@ async def get_senior(seniorId: int):
 
 
 @app.get(PATH_GET_JWT)
-async def get_jwt_cookie():
+async def create_jwt():
     # eg. headers = {"X-Token": "foo"} ?
     return JSONResponse(status_code=status.HTTP_201_CREATED, headers={"token": signed_jwt_token()})
 
@@ -153,9 +154,26 @@ def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
 
 
+PATHS_PROTECTED_WITH_API_KEY = {PATH_STORE_HOME,
+                                PATH_STORE_SENSOR,
+                                PATH_STORE_SENIOR,
+                                PATH_ASSIGN_SENSOR_TO_SENIOR,
+                                PATH_GET_SENIOR
+                                }
+
+PATHS_PROTECTED_WITH_JWT = {PATH_STORE_HOME,
+                            PATH_STORE_SENSOR,
+                            PATH_STORE_SENIOR,
+                            PATH_ASSIGN_SENSOR_TO_SENIOR,
+                            PATH_GET_SENIOR}
+
+
 @app.middleware("http")
 async def middleware_header_api_key(req: Request, call_next):
     if not APIKEY_MIDDLEWARE_ACTIVE:
+        return await call_next(req)
+
+    if not protected_path(req, paths_protected=PATHS_PROTECTED_WITH_API_KEY):
         return await call_next(req)
 
     try:
@@ -173,8 +191,7 @@ async def middleware_jwt(req: Request, call_next):
     if not JWT_MIDDLEWARE_ACTIVE:
         return await call_next(req)
 
-    # Middleware disabled for path providing it.
-    if endpoint_path_matches(PATH_GET_JWT, req=req):
+    if not protected_path(req, paths_protected=PATHS_PROTECTED_WITH_JWT):
         return await call_next(req)
 
     headers = req.headers
@@ -192,7 +209,16 @@ async def middleware_jwt(req: Request, call_next):
 
 
 def endpoint_path_matches(endpoint_path, req):
-    return req.url == str(req.base_url).rstrip('/') + endpoint_path
+    requested_path = str(req.url)
+    p = str(req.base_url).rstrip('/') + endpoint_path
+    return requested_path.startswith(p)
+
+
+def protected_path(req, paths_protected):
+    for p in paths_protected:
+        if endpoint_path_matches(p, req=req):
+            return True
+    return False
 
 
 def token_user_correct(t):
