@@ -1,5 +1,5 @@
 # To run it
-You need MongoDB and you have to edit the DB link in `main.py`. 
+You need Python, MongoDB and you have to edit the DB link in `main.py`. 
 Or you can contact me and I will give you access to my DB.
 
 Install all `requirements.txt` and run:   
@@ -8,8 +8,11 @@ in the project folder.
 
 You can use Postman for the requests.
 
-## Endpoints
-![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
+
+### Secrets not stored on Git
+File with secrets is ignored on commits.   
+Please edit `configuration.py` to set the correct 
+passwords.
 
 
 ### Middlewares
@@ -18,12 +21,9 @@ Api-key middleware and JWT middleware cover endpoints 1-5.
 Both middlewares are active by default. 
 They can be disabled in `configuration.py`. 
 
+### Endpoints
+![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
 
-
-### Secrets not stored on Git
-File with secrets is ignored on commits.   
-Please edit `configuration.py` to set the correct 
-passwords.
 
 ### Testing
 Everything has been tested manually 
