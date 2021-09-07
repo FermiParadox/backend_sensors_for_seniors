@@ -1,6 +1,6 @@
 # Load secrets
 try:
-    from app.IGNORE_GIT_SECRETS import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY, DB_LINK
+    from app.IGNORE_GIT_SECRETS import API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY, DB_LINK
 
 except ImportError:
 
