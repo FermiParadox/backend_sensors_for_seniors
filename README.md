@@ -29,10 +29,7 @@ They can be disabled in `configuration.py`.
 # Testing
 Everything has been tested manually 
 and through unit-tests, although the latter could 
-have been more thorough. 
-
-The unit-tests work **when JWT-middleware is disabled**.
-I can make them work with it as well if needed.
+have been more thorough.
 
 
 # Race conditions
