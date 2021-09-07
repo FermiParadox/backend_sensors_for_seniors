@@ -5,7 +5,7 @@ try:
 except ImportError:
 
     from configuration import API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY, DB_LINK
-    print("""WARNING: Secrets NOT stored on Git (DB link, api-key, etc.). 
+    print("""\n\nWARNING: Secrets NOT stored on Git (DB link, api-key, etc.). 
     Using default (wrong) values from configuration file.
     
     Please change edit configuration file manually. 

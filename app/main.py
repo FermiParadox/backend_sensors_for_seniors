@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-
 import jwt
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
@@ -8,7 +7,7 @@ from pydantic.validators import Literal
 from starlette.responses import JSONResponse, Response
 from pydantic import BaseModel
 from typing import Optional
-from starlette import status
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 import uvicorn
 from app.secret_handler import DB_LINK, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
 from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_TOKEN_DURATION_HOURS, \
@@ -18,7 +17,7 @@ API_KEY, API_VALUE = list(API_KEY_VALUE_PAIR.items())[0]
 
 
 def _raise_http_422(msg):
-    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
+    raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
 
 
 client = pymongo.MongoClient(DB_LINK)
@@ -53,7 +52,6 @@ class Sensor(BaseModel):
     softwareVersion: str
 
 
-# TODO "Senior" -> "Patient"; "senior"/"sensor" too similar + hard to read; keep seniorId for clients as is
 class Senior(BaseModel):
     seniorId: ConstrainedIntMongo
     name: str
@@ -73,13 +71,13 @@ app = FastAPI()
 @app.post(PATH_STORE_HOME)
 async def store_home(newHome: Home):
     homes_table.insert_one(newHome.dict())
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=newHome.dict())
+    return JSONResponse(status_code=HTTP_201_CREATED, content=newHome.dict())
 
 
 @app.post(PATH_STORE_SENSOR)
 async def store_sensor(newSensor: Sensor):
     sensors_table.insert_one(newSensor.dict())
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=newSensor.dict())
+    return JSONResponse(status_code=HTTP_201_CREATED, content=newSensor.dict())
 
 
 @app.post(PATH_STORE_SENIOR)
@@ -92,13 +90,12 @@ async def store_senior(newSenior: Senior):
         d.pop("sensorId")
     seniors_table.insert_one(d)
     d.pop("_id")
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=d)
+    return JSONResponse(status_code=HTTP_201_CREATED, content=d)
 
 
 async def _raise_if_home_doesnt_exist(homeId):
     if not homes_table.find_one({"homeId": homeId}):
-        _raise_http_422(
-            msg=f"Can't assign senior to home ID {homeId} (home doesn't exist).")
+        _raise_http_422(msg=f"Can't assign senior to home ID {homeId} (home doesn't exist).")
 
 
 # TODO think carefully race-conditions here
@@ -108,24 +105,24 @@ async def assign_sensor(sensorAssignment: SensorAssignment):
     d = sensorAssignment.dict()
     sensorId = d["sensorId"]
     seniorId = d["seniorId"]
-    await _raise_if_senior_doesnt_exist(seniorId=seniorId)
-    await _raise_if_sensor_already_assigned(sensorId=sensorId)
-    await _raise_if_sensor_doesnt_exist(sensorId=sensorId)
+    await _raise_senior_doesnt_exist(seniorId=seniorId)
+    await _raise_sensor_already_assigned(sensorId=sensorId)
+    await _raise_sensor_doesnt_exist(sensorId=sensorId)
     seniors_table.find_one_and_update({"seniorId": seniorId}, {"$set": {"sensorId": sensorId}})
     return {f"Sensor {sensorId} assigned to senior {seniorId}."}
 
 
-async def _raise_if_sensor_already_assigned(sensorId):
+async def _raise_sensor_already_assigned(sensorId):
     if seniors_table.find_one({"sensorId": sensorId}):
         _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior.")
 
 
-async def _raise_if_senior_doesnt_exist(seniorId):
+async def _raise_senior_doesnt_exist(seniorId):
     if not seniors_table.find_one({"seniorId": seniorId}):
         _raise_http_422(msg=f"Senior {seniorId} doesn't exist. Please register him first, then assign a sensor.")
 
 
-async def _raise_if_sensor_doesnt_exist(sensorId):
+async def _raise_sensor_doesnt_exist(sensorId):
     if not sensors_table.find_one({"sensorId": sensorId}):
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
@@ -133,7 +130,7 @@ async def _raise_if_sensor_doesnt_exist(sensorId):
 @app.get(PATH_GET_SENIOR)
 async def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND,
                             detail=f"Senior {seniorId} doesn't exist.")
     match = seniors_table.find_one({"seniorId": seniorId})
     match.pop('_id')
@@ -142,14 +139,13 @@ async def get_senior(seniorId: int):
 
 @app.get(PATH_GET_JWT)
 async def create_jwt():
-    # eg. headers = {"X-Token": "foo"} ?
-    return JSONResponse(status_code=status.HTTP_201_CREATED, headers={"token": signed_jwt_token()})
+    return JSONResponse(status_code=HTTP_201_CREATED, headers={"token": signed_jwt_token()})
 
 
 def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
     expiration = datetime.utcnow() + timedelta(hours=duration_h)
     d = {"username": JWT_USER_NAME, "exp": expiration}
-    # (function output tested here: https://jwt.io/ ; displays local time)
+    # (function output can be tested here: https://jwt.io/ ; displays local time)
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
 
 
@@ -207,6 +203,13 @@ async def middleware_jwt(req: Request, call_next):
     return Response(status_code=401, content='Token failed.')
 
 
+def protected_path(req, paths_protected):
+    for p in paths_protected:
+        if endpoint_path_matches(p, req=req):
+            return True
+    return False
+
+
 def endpoint_path_matches(endpoint_path, req) -> bool:
     """Compare requested path with stored endpoint path.
 
@@ -219,13 +222,6 @@ def endpoint_path_matches(endpoint_path, req) -> bool:
     requested_path = str(req.url)
     p = str(req.base_url).rstrip('/') + endpoint_path
     return requested_path.startswith(p)
-
-
-def protected_path(req, paths_protected):
-    for p in paths_protected:
-        if endpoint_path_matches(p, req=req):
-            return True
-    return False
 
 
 def token_user_correct(t):
