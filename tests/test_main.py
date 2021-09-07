@@ -219,8 +219,8 @@ class TestStoreSensor(TestCaseWithDeletion):
 
 
 class TestStoreSenior(TestCaseWithDeletion):
-    VALID_SENIOR_EXAMPLE = {'seniorId': 5,
-                            "name": "John",
+    VALID_SENIOR_EXAMPLE = {'seniorId': 999879795,
+                            "name": _DELETION_MARKER_STRING,
                             'homeId': 1,
                             'enabled': False}
 
@@ -315,13 +315,14 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
                                         path=self.PATH_ASSIGN_SENSOR_TO_SENIOR,
                                         r_type='put')
 
-    # TODO find bug; manual tests work fine, this test fails.
-    #   test-documents are not stored on DB for unknown reasons.
-    def DISABLED_test_successful(self):
-        from app.main import PATH_STORE_SENIOR, PATH_STORE_SENSOR
-        self.client.post(url=PATH_STORE_SENIOR, json=self.SENIOR_EXAMPLE)
-        self.client.post(url=PATH_STORE_SENSOR, json=self.SENSOR_EXAMPLE)
-        self.assert_response_code_is_x(data=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE, x=201)
+    def test_successful(self):
+        from app.main import PATH_STORE_SENIOR
+        post_response(data=self.SENIOR_EXAMPLE, client=self.client, path=PATH_STORE_SENIOR)
+
+        from app.main import PATH_STORE_SENSOR
+        post_response(data=self.SENSOR_EXAMPLE, client=self.client, path=PATH_STORE_SENSOR)
+
+        self.assert_response_code_is_x(data=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE, x=200)
 
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE)
