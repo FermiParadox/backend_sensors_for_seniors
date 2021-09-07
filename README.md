@@ -1,7 +1,7 @@
 # To run it
 You need: 
 - Python 
-- MongoDB and you have to edit the DB link in `main.py` (or contact me and I'll give you access to my DB)
+- MongoDB (or contact me and I'll give you access to my DB)
 - edit the `configuration.py` to set the correct password values.
 
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Optional
 from starlette import status
 import uvicorn
-from app.secret_handler import PASS_MONGO_DB_USER0, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
+from app.secret_handler import DB_LINK, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
 from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_TOKEN_DURATION_HOURS, \
     JWT_ALGORITHM
 
@@ -21,8 +21,7 @@ def _raise_http_422(msg):
     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
 
 
-client = pymongo.MongoClient(
-    f"mongodb+srv://user0:{PASS_MONGO_DB_USER0}@cluster0.4derf.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+client = pymongo.MongoClient(DB_LINK)
 db = client["test"]
 
 homes_table = db['homes']
@@ -33,6 +32,13 @@ ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
 
 MONGODB_INT_UPPER_LIM = 2 ** 31
 ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
+
+PATH_STORE_HOME = '/store-home'
+PATH_STORE_SENSOR = '/store-sensor'
+PATH_STORE_SENIOR = '/store-senior'
+PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
+PATH_GET_SENIOR = "/get-senior"
+PATH_GET_JWT = "/create-jwt"
 
 
 class Home(BaseModel):
@@ -62,13 +68,6 @@ class SensorAssignment(BaseModel):
 
 
 app = FastAPI()
-
-PATH_STORE_HOME = '/store-home'
-PATH_STORE_SENSOR = '/store-sensor'
-PATH_STORE_SENIOR = '/store-senior'
-PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
-PATH_GET_SENIOR = "/get-senior"
-PATH_GET_JWT = "/create-jwt"
 
 
 @app.post(PATH_STORE_HOME)
