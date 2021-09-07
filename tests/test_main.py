@@ -45,7 +45,6 @@ class TestEntriesDeletionInDB(ABC):
 
 def new_token():
     r = TestClient(app).get(url=PATH_GET_JWT, json={}, headers=final_extra_header)
-    print(r.headers['token'])
     return r.headers['token']
 
 
