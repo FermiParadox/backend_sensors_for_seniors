@@ -177,7 +177,7 @@ class TestStoreHome(TestCaseWithDeletion):
 class TestStoreSensor(TestCaseWithDeletion):
     VALID_SENSOR_EXAMPLE = {
         'sensorId': 236236236,
-        "hardwareVersion": '17',
+        "hardwareVersion": _DELETION_MARKER_STRING,
         "softwareVersion": "1.5.15c"}
 
     @property
@@ -293,8 +293,8 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
     SENIOR_EXAMPLE = TestStoreSenior.VALID_SENIOR_EXAMPLE
     SENSOR_EXAMPLE = TestStoreSensor.VALID_SENSOR_EXAMPLE
     # It's valid only if the previous entries exist
-    VALID_SENSOR_ASSIGNMENT_EXAMPLE = {"seniorId": int(SENIOR_EXAMPLE["seniorId"]),
-                                       "sensorId": int(SENSOR_EXAMPLE["sensorId"])}
+    VALID_SENSOR_ASSIGNMENT_EXAMPLE = {"seniorId": SENIOR_EXAMPLE["seniorId"],
+                                       "sensorId": SENSOR_EXAMPLE["sensorId"]}
 
     @property
     def collection_name(self):
@@ -361,13 +361,14 @@ class TestGetSenior(TestCaseWithDeletion):
         return self._assert_response_code_is_x(data, x, client=self.client, path=self.PATH_GET_SENIOR, r_type='get')
 
     def test_successful(self):
-        # TODO make seniorID 111 insertion and deletion automatic inside this test
-        #   Currently it relies on 111 being there.
-        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 111}, headers=final_extra_header)
-        self.assertEqual(200, r.status_code, msg="Insert seniorID 111 if you haven't.")
+        from app.main import PATH_STORE_SENIOR
+        post_response(data=self.valid_senior, client=self.client, path=PATH_STORE_SENIOR)
+        r = self.client.get(url=self.PATH_GET_SENIOR,
+                            params={"seniorId": self.valid_senior['seniorId']}, headers=final_extra_header)
+        self.assertEqual(200, r.status_code)
 
     def test_non_existent(self):
-        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 1887678568511},
+        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 180670668871},
                             headers=final_extra_header)
         self.assertEqual(404, r.status_code)
 
