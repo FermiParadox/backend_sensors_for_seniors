@@ -5,9 +5,14 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 
 from app.secret_handler import API_KEY_VALUE_PAIR
-from app.main import app, homes_table, sensors_table, seniors_table
+from app.main import app, homes_table, sensors_table, seniors_table, PATH_GET_JWT
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
+
+TOKEN_HEADER = {'token': 'to-be-replaced'}
+final_extra_header = {}
+final_extra_header.update(TOKEN_HEADER)
+final_extra_header.update(API_KEY_VALUE_PAIR)
 
 
 class TestEntriesDeletionInDB(ABC):
@@ -38,15 +43,30 @@ class TestEntriesDeletionInDB(ABC):
         self.delete_test_objects_in_db(key=self.key_with_deletion_marker_value)
 
 
-def post_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+def new_token():
+    r = TestClient(app).get(url=PATH_GET_JWT, json={}, headers=final_extra_header)
+    print(r.headers['token'])
+    return r.headers['token']
+
+
+final_extra_header['token'] = new_token()
+
+
+def post_response(data, client: TestClient, path, headers=None):
+    if headers is None:
+        headers = final_extra_header
     return client.post(url=path, json=data, headers=headers)
 
 
-def put_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+def put_response(data, client: TestClient, path, headers=None):
+    if headers is None:
+        headers = final_extra_header
     return client.put(url=path, json=data, headers=headers)
 
 
-def get_response(data, client: TestClient, path, headers=API_KEY_VALUE_PAIR):
+def get_response(data, client: TestClient, path, headers=None):
+    if headers is None:
+        headers = final_extra_header
     return client.get(url=path, json=data, headers=headers)
 
 
@@ -65,7 +85,7 @@ def response_(r_type):
 class TestCaseWithDeletion(TestEntriesDeletionInDB, TestCase):
     """Implements methods used in most request-tests."""
 
-    def _assert_response_code_is_x(self, data, x: int, client, path, r_type, headers=API_KEY_VALUE_PAIR):
+    def _assert_response_code_is_x(self, data, x: int, client, path, r_type, headers=None):
         resp_func = response_(r_type=r_type)
         resp = resp_func(data=data, client=client, path=path, headers=headers)
         try:
@@ -324,10 +344,10 @@ class TestGetSenior(TestCaseWithDeletion):
     def test_successful(self):
         # TODO make seniorID 111 insertion and deletion automatic inside this test
         #   Currently it relies on 111 being there.
-        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 111}, headers=API_KEY_VALUE_PAIR)
+        r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 111}, headers=final_extra_header)
         self.assertEqual(200, r.status_code, msg="Insert seniorID 111 if you haven't.")
 
     def test_non_existent(self):
         r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 1887678568511},
-                            headers=API_KEY_VALUE_PAIR)
+                            headers=final_extra_header)
         self.assertEqual(404, r.status_code)
