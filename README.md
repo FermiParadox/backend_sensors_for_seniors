@@ -9,7 +9,8 @@ Install all `requirements.txt` and run:
 `$ uvicorn app.main:app --reload`
 in the project folder.
 
-You can use Postman for the requests. [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/17280509-661ecbc4-1f43-42b5-bf16-778620702e6a?action=collection%2Ffork&collection-url=entityId%3D17280509-661ecbc4-1f43-42b5-bf16-778620702e6a%26entityType%3Dcollection%26workspaceId%3D3add7133-82b3-4bd0-a78c-9647b717d65d)
+You can use Postman for the requests. Here are my tests:
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/17280509-661ecbc4-1f43-42b5-bf16-778620702e6a?action=collection%2Ffork&collection-url=entityId%3D17280509-661ecbc4-1f43-42b5-bf16-778620702e6a%26entityType%3Dcollection%26workspaceId%3D3add7133-82b3-4bd0-a78c-9647b717d65d)
 
 
 ### Secrets (passwords, api-keys, etc.) not stored on Git
@@ -27,8 +28,8 @@ They can be disabled in `configuration.py`.
 
 
 # Testing
-Everything has been tested manually 
-and through unit-tests, although the latter could 
+Everything has been tested manually with Postman 
+and unit-tests, although the latter could 
 have been more thorough.
 
 
