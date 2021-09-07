@@ -164,10 +164,15 @@ class TestStoreHome(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_home)
 
-    def test_unauthorized(self):
+    def test_no_token(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
                                         client=self.client, path=self.PATH_STORE_HOME, r_type='post',
-                                        headers={})
+                                        headers=API_KEY_VALUE_PAIR)
+
+    def test_no_apikey(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_HOME, r_type='post',
+                                        headers=TOKEN_HEADER)
 
 
 class TestStoreSensor(TestCaseWithDeletion):
@@ -203,10 +208,15 @@ class TestStoreSensor(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_body)
 
-    def test_unauthorized(self):
+    def test_no_token(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
                                         client=self.client, path=self.PATH_STORE_SENSOR, r_type='post',
-                                        headers={})
+                                        headers=API_KEY_VALUE_PAIR)
+
+    def test_no_apikey(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_SENSOR, r_type='post',
+                                        headers=TOKEN_HEADER)
 
 
 class TestStoreSenior(TestCaseWithDeletion):
@@ -268,10 +278,15 @@ class TestStoreSenior(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.valid_senior)
 
-    def test_unauthorized(self):
+    def test_no_token(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
                                         client=self.client, path=self.PATH_STORE_SENIOR, r_type='post',
-                                        headers={})
+                                        headers=API_KEY_VALUE_PAIR)
+
+    def test_no_apikey(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_STORE_SENIOR, r_type='post',
+                                        headers=TOKEN_HEADER)
 
 
 class TestAssignSensorToSenior(TestCaseWithDeletion):
@@ -312,11 +327,15 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
     def test_not_enough_args(self):
         self._test_not_enough_args(valid_body=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE)
 
-    def test_unauthorized(self):
+    def test_no_token(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
-                                        client=self.client,
-                                        path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='put',
-                                        headers={})
+                                        client=self.client, path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='post',
+                                        headers=API_KEY_VALUE_PAIR)
+
+    def test_no_apikey(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='post',
+                                        headers=TOKEN_HEADER)
 
 
 class TestGetSenior(TestCaseWithDeletion):
@@ -351,3 +370,13 @@ class TestGetSenior(TestCaseWithDeletion):
         r = self.client.get(url=self.PATH_GET_SENIOR, params={"seniorId": 1887678568511},
                             headers=final_extra_header)
         self.assertEqual(404, r.status_code)
+
+    def test_no_token(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_GET_SENIOR, r_type='post',
+                                        headers=API_KEY_VALUE_PAIR)
+
+    def test_no_apikey(self):
+        self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
+                                        client=self.client, path=self.PATH_GET_SENIOR, r_type='post',
+                                        headers=TOKEN_HEADER)
