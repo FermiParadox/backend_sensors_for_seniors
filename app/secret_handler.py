@@ -8,5 +8,5 @@ except ImportError:
     raise Warning("""Secrets NOT stored on Git (DB password, api-key, etc.). 
     Using default (wrong) values from the configuration file.
     
-    Please change the values in the configuration file manually and rerun the code. 
-    Also comment out: raise Warning""")
+    Please change the values in the configuration file manually, comment out: raise Warning 
+    and rerun the code.""")

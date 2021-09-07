@@ -4,7 +4,7 @@ from json import JSONDecodeError
 from unittest import TestCase
 from fastapi.testclient import TestClient
 
-from app.IGNORE_GIT_SECRETS import API_KEY_VALUE_PAIR
+from app.secret_handler import API_KEY_VALUE_PAIR
 from app.main import app, homes_table, sensors_table, seniors_table
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
