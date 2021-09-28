@@ -108,7 +108,9 @@ async def assign_sensor(sensorAssignment: SensorAssignment):
     await _raise_senior_doesnt_exist(seniorId=seniorId)
     await _raise_sensor_already_assigned(sensorId=sensorId)
     await _raise_sensor_doesnt_exist(sensorId=sensorId)
-    seniors_table.find_one_and_update({"seniorId": seniorId}, {"$set": {"sensorId": sensorId}})
+    seniors_table.find_one_and_update({"seniorId": seniorId},
+                                      {"$set": {
+                                          "sensorId": sensorId}})
     return {f"Sensor {sensorId} assigned to senior {seniorId}."}
 
 
