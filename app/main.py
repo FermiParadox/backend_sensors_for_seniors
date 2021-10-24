@@ -27,17 +27,18 @@ homes_table = db['homes']
 sensors_table = db['sensors']
 seniors_table = db['seniors']
 
-ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
-
-MONGODB_INT_UPPER_LIM = 2 ** 31
-ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
-
 PATH_STORE_HOME = '/store-home'
 PATH_STORE_SENSOR = '/store-sensor'
 PATH_STORE_SENIOR = '/store-senior'
 PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
 PATH_GET_JWT = "/create-jwt"
+
+
+MONGODB_INT_UPPER_LIM = 2 ** 31
+ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
+
+ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
 
 
 class Home(BaseModel):
@@ -170,7 +171,7 @@ async def middleware_header_api_key(req: Request, call_next):
     if not APIKEY_MIDDLEWARE_ACTIVE:
         return await call_next(req)
 
-    if not protected_path(req, paths_protected=PATHS_PROTECTED_WITH_API_KEY):
+    if not is_protected_path(req, paths_protected=PATHS_PROTECTED_WITH_API_KEY):
         return await call_next(req)
 
     try:
@@ -188,7 +189,7 @@ async def middleware_jwt(req: Request, call_next):
     if not JWT_MIDDLEWARE_ACTIVE:
         return await call_next(req)
 
-    if not protected_path(req, paths_protected=PATHS_PROTECTED_WITH_JWT):
+    if not is_protected_path(req, paths_protected=PATHS_PROTECTED_WITH_JWT):
         return await call_next(req)
 
     headers = req.headers
@@ -205,7 +206,7 @@ async def middleware_jwt(req: Request, call_next):
     return Response(status_code=401, content='Token failed.')
 
 
-def protected_path(req, paths_protected):
+def is_protected_path(req, paths_protected):
     for p in paths_protected:
         if endpoint_path_matches(p, req=req):
             return True
