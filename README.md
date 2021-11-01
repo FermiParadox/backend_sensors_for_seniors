@@ -38,7 +38,4 @@ have been more thorough.
 Some functions are prone to race-conditions when eg.: 
 - 2 nurses assign same sensor
 - or 1 nurse assigns while other changes table
-
-# Async mongoDB
-It hasn't been implemented. I can do so if needed.
-
+I should have update conditions checked by MongoDB itself.
