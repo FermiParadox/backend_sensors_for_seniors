@@ -1,3 +1,6 @@
+# What's that
+Toy project. REST API that allows registering seniors, clinics, sensors. Endpoints are protected with JWT and/or an API-key that must be present in the request's body.
+
 # To run it
 You need: 
 - Python 
@@ -14,7 +17,7 @@ You can use Postman for the requests. Here are my tests:
 
 
 ### Secrets (passwords, api-keys, etc.) not stored on Git
-File with secrets is ignored on commits. 
+File with secrets is ignored on commits. (should have used env-variables)
 
 
 # Middlewares
@@ -30,7 +33,7 @@ They can be disabled in `configuration.py`.
 # Testing
 Everything has been tested manually with Postman 
 and unit-tests, although the latter could 
-have been more thorough.
+have been more thorough (and less complicated).
 
 
 # Race conditions
@@ -38,4 +41,4 @@ have been more thorough.
 Some functions are prone to race-conditions when eg.: 
 - 2 nurses assign same sensor
 - or 1 nurse assigns while other changes table
-I should have update conditions checked by MongoDB itself.
+I should have update-conditions checked by MongoDB itself.
