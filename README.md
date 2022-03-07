@@ -1,6 +1,8 @@
 # What's this
 REST API toy project that allows registering seniors, clinics, sensors. Endpoints are protected with JWT and/or an API-key.
 
+![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
+
 # To run it
 You need: 
 - Python 
@@ -26,9 +28,6 @@ Api-key middleware and JWT middleware cover endpoints 1-5.
 Both middlewares are active by default. 
 They can be disabled in `configuration.py`. 
 
-# Endpoints
-![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
-
 
 # Testing
 Everything has been tested manually with Postman 
@@ -37,7 +36,7 @@ have been more thorough (and less complicated).
 
 
 # Issues
-Some functions are prone to race-conditions when eg.: 
+Some functions are prone to race-conditions when e.g.: 
 - 2 nurses assign same sensor
 - or 1 nurse assigns while other changes table
 I should have update-conditions checked by MongoDB itself.
