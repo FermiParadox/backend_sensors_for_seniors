@@ -1,5 +1,5 @@
-# What's this
-REST API toy project that allows registering seniors, clinics, sensors. Endpoints are protected with JWT and/or an API-key.
+# REST API toy project
+Αllows registering seniors, clinics, sensors. Endpoints are protected with JWT and/or an API-key.
 
 ![image](https://user-images.githubusercontent.com/10809024/132179743-24a93e4b-8f9b-4aa7-8aac-e08dcd808de9.png)
 
