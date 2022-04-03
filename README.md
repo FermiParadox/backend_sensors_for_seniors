@@ -26,12 +26,6 @@ Both middlewares are active by default.
 They can be disabled in `configuration.py`. 
 
 
-# Testing
-Everything has been tested manually with Postman 
-and unit-tests, although the latter could 
-have been more thorough (and less complicated).
-
-
 # Issues
 Some functions are prone to race-conditions when e.g.: 
 - 2 nurses assign same sensor
