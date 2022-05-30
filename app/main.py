@@ -94,7 +94,7 @@ async def store_senior(newSenior: Senior):
     return JSONResponse(status_code=HTTP_201_CREATED, content=d)
 
 
-async def _raise_if_home_doesnt_exist(homeId):
+async def _raise_if_home_doesnt_exist(homeId) -> None:
     if not homes_table.find_one({"homeId": homeId}):
         _raise_http_422(msg=f"Can't assign senior to home ID {homeId} (home doesn't exist).")
 
@@ -115,17 +115,17 @@ async def assign_sensor(sensorAssignment: SensorAssignment):
     return {f"Sensor {sensorId} assigned to senior {seniorId}."}
 
 
-async def _raise_sensor_already_assigned(sensorId):
+async def _raise_sensor_already_assigned(sensorId) -> None:
     if seniors_table.find_one({"sensorId": sensorId}):
         _raise_http_422(msg=f"Sensor {sensorId} already belongs to a senior.")
 
 
-async def _raise_senior_doesnt_exist(seniorId):
+async def _raise_senior_doesnt_exist(seniorId) -> None:
     if not seniors_table.find_one({"seniorId": seniorId}):
         _raise_http_422(msg=f"Senior {seniorId} doesn't exist. Please register him first, then assign a sensor.")
 
 
-async def _raise_sensor_doesnt_exist(sensorId):
+async def _raise_sensor_doesnt_exist(sensorId) -> None:
     if not sensors_table.find_one({"sensorId": sensorId}):
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
@@ -199,14 +199,14 @@ async def middleware_jwt(req: Request, call_next):
     token = headers["token"]
     try:
         decoded_token = jwt.decode(token, key=JWT_PRIVATE_KEY, algorithms=JWT_ALGORITHM)
-        if token_user_correct(t=decoded_token):
+        if token_user_correct(token=decoded_token):
             return await call_next(req)
     except jwt.PyJWTError:
         pass
     return Response(status_code=401, content='Token failed.')
 
 
-def is_protected_path(req, paths_protected):
+def is_protected_path(req, paths_protected) -> bool:
     for p in paths_protected:
         if endpoint_path_matches(p, req=req):
             return True
@@ -227,8 +227,8 @@ def endpoint_path_matches(endpoint_path, req) -> bool:
     return requested_path.startswith(p)
 
 
-def token_user_correct(t):
-    return t["username"] == JWT_USER_NAME
+def token_user_correct(token) -> bool:
+    return token["username"] == JWT_USER_NAME
 
 
 if __name__ == "__main__":
