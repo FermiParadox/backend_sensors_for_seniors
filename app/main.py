@@ -21,7 +21,7 @@ def _raise_http_422(msg):
     raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
 
 
-class EndpointPaths(str, Enum):
+class EndpointPath(str, Enum):
     store_home = '/store-home'
     store_sensor = '/store-sensor'
     store_senior = '/store-senior'
@@ -33,19 +33,19 @@ class EndpointPaths(str, Enum):
 app = FastAPI()
 
 
-@app.post(EndpointPaths.store_home)
+@app.post(EndpointPath.store_home)
 async def store_home(newHome: Home):
     homes_table.insert_one(newHome.dict())
     return JSONResponse(status_code=HTTP_201_CREATED, content=newHome.dict())
 
 
-@app.post(EndpointPaths.store_sensor)
+@app.post(EndpointPath.store_sensor)
 async def store_sensor(newSensor: Sensor):
     sensors_table.insert_one(newSensor.dict())
     return JSONResponse(status_code=HTTP_201_CREATED, content=newSensor.dict())
 
 
-@app.post(EndpointPaths.store_senior)
+@app.post(EndpointPath.store_senior)
 async def store_senior(newSenior: Senior):
     d = newSenior.dict()
     await _raise_if_home_doesnt_exist(homeId=d["homeId"])
@@ -64,7 +64,7 @@ async def _raise_if_home_doesnt_exist(homeId) -> None:
 
 
 # TODO mongo server-side (race conditions + delay)
-@app.put(EndpointPaths.assign_sensor)
+@app.put(EndpointPath.assign_sensor)
 async def assign_sensor(sensorAssignment: SensorAssignment):
     d = sensorAssignment.dict()
     sensorId = d["sensorId"]
@@ -93,7 +93,7 @@ async def _raise_sensor_doesnt_exist(sensorId) -> None:
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
 
-@app.get(EndpointPaths.get_senior)
+@app.get(EndpointPath.get_senior)
 async def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND,
@@ -103,7 +103,7 @@ async def get_senior(seniorId: int):
     return match
 
 
-@app.get(EndpointPaths.get_jwt)
+@app.get(EndpointPath.get_jwt)
 async def create_jwt():
     return JSONResponse(status_code=HTTP_201_CREATED, headers={"token": signed_jwt_token()})
 
@@ -115,11 +115,11 @@ def signed_jwt_token(duration_h=JWT_DURATION_HOURS):
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
 
 
-PATHS_PROTECTED_WITH_JWT = {EndpointPaths.store_home,
-                            EndpointPaths.store_senior,
-                            EndpointPaths.store_sensor,
-                            EndpointPaths.assign_sensor,
-                            EndpointPaths.get_senior}
+PATHS_PROTECTED_WITH_JWT = {EndpointPath.store_home,
+                            EndpointPath.store_senior,
+                            EndpointPath.store_sensor,
+                            EndpointPath.assign_sensor,
+                            EndpointPath.get_senior}
 
 
 @app.middleware("http")
@@ -166,7 +166,7 @@ def is_protected_path(req, paths_protected) -> bool:
     return False
 
 
-def endpoint_path_matches(endpoint_path, req) -> bool:
+def endpoint_path_matches(endpoint_path: EndpointPath, req) -> bool:
     """Compare requested path with stored endpoint path.
 
     If this is matched:
