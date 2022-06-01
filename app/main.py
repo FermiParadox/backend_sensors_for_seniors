@@ -1,17 +1,16 @@
 from datetime import datetime, timedelta
-from enum import Enum
 
 import jwt
-import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
-from pydantic.types import conint
-from pydantic.validators import Literal
 from starlette.responses import JSONResponse, Response
-from pydantic import BaseModel
-from typing import Optional
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 import uvicorn
-from app.secret_handler import DB_LINK, API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
+
+from app.model.home import homes_table, Home
+from app.model.senior import seniors_table, Senior
+from app.model.sensor import sensors_table, Sensor
+from app.model.sensor_assignment import SensorAssignment
+from app.secret_handler import API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
 from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_TOKEN_DURATION_HOURS, \
     JWT_ALGORITHM
 
@@ -22,53 +21,12 @@ def _raise_http_422(msg):
     raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
 
 
-client = pymongo.MongoClient(DB_LINK)
-db = client["test"]
-
-homes_table = db['homes']
-sensors_table = db['sensors']
-seniors_table = db['seniors']
-
 PATH_STORE_HOME = '/store-home'
 PATH_STORE_SENSOR = '/store-sensor'
 PATH_STORE_SENIOR = '/store-senior'
 PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
 PATH_GET_JWT = "/create-jwt"
-
-MONGODB_INT_UPPER_LIM = 2 ** 31
-ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
-
-
-class HomeTypes(str, Enum):
-    nursing = "NURSING"
-    private = "PRIVATE"
-
-
-class Home(BaseModel):
-    homeId: ConstrainedIntMongo
-    name: str
-    type: HomeTypes
-
-
-class Sensor(BaseModel):
-    sensorId: ConstrainedIntMongo
-    hardwareVersion: str
-    softwareVersion: str
-
-
-class Senior(BaseModel):
-    seniorId: ConstrainedIntMongo
-    name: str
-    homeId: ConstrainedIntMongo
-    enabled: bool
-    sensorId: Optional[int] = 0
-
-
-class SensorAssignment(BaseModel):
-    seniorId: ConstrainedIntMongo
-    sensorId: ConstrainedIntMongo
-
 
 app = FastAPI()
 

@@ -5,7 +5,10 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 
 from app.secret_handler import API_KEY_VALUE_PAIR
-from app.main import app, homes_table, sensors_table, seniors_table, PATH_GET_JWT
+from app.main import app, PATH_GET_JWT
+from app.model.senior import seniors_table
+from app.model.sensor import sensors_table
+from app.model.home import homes_table, HomeTypes
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
 
@@ -125,7 +128,7 @@ class TestStoreHome(TestCaseWithDeletion):
 
     def setUp(self) -> None:
         # (avoiding global import to prevent accidental bugs due to names' similarity)
-        from app.main import PATH_STORE_HOME, HomeTypes
+        from app.main import PATH_STORE_HOME
         self.PATH_STORE_HOME = PATH_STORE_HOME
         self.ALLOWED_HOME_TYPES = HomeTypes
         self.valid_home = {"homeId": 23897523,
