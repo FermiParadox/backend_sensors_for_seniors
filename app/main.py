@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from enum import Enum
+
 import jwt
 import pymongo as pymongo
 from fastapi import FastAPI, HTTPException, Request
@@ -34,17 +36,19 @@ PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
 PATH_GET_SENIOR = "/get-senior"
 PATH_GET_JWT = "/create-jwt"
 
-
 MONGODB_INT_UPPER_LIM = 2 ** 31
 ConstrainedIntMongo = conint(gt=0, lt=MONGODB_INT_UPPER_LIM)
 
-ALLOWED_HOME_TYPES = ("NURSING", "PRIVATE")
+
+class HomeTypes(str, Enum):
+    nursing = "NURSING"
+    private = "PRIVATE"
 
 
 class Home(BaseModel):
     homeId: ConstrainedIntMongo
     name: str
-    type: Literal[ALLOWED_HOME_TYPES]
+    type: HomeTypes
 
 
 class Sensor(BaseModel):

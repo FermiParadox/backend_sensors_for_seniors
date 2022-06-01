@@ -125,9 +125,9 @@ class TestStoreHome(TestCaseWithDeletion):
 
     def setUp(self) -> None:
         # (avoiding global import to prevent accidental bugs due to names' similarity)
-        from app.main import PATH_STORE_HOME, ALLOWED_HOME_TYPES
+        from app.main import PATH_STORE_HOME, HomeTypes
         self.PATH_STORE_HOME = PATH_STORE_HOME
-        self.ALLOWED_HOME_TYPES = ALLOWED_HOME_TYPES
+        self.ALLOWED_HOME_TYPES = HomeTypes
         self.valid_home = {"homeId": 23897523,
                            self.key_with_deletion_marker_value: _DELETION_MARKER_STRING,
                            "type": self.ALLOWED_HOME_TYPES[0]}
