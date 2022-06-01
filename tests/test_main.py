@@ -133,7 +133,7 @@ class TestStoreHome(TestCaseWithDeletion):
         self.ALLOWED_HOME_TYPES = HomeTypes
         self.valid_home = {"homeId": 23897523,
                            self.key_with_deletion_marker_value: _DELETION_MARKER_STRING,
-                           "type": self.ALLOWED_HOME_TYPES[0]}
+                           "type": self.ALLOWED_HOME_TYPES.nursing}
         self.client = TestClient(app)
 
     def valid_body_deepcopy(self):
@@ -144,9 +144,10 @@ class TestStoreHome(TestCaseWithDeletion):
 
     def test_successful(self):
         d = self.valid_body_deepcopy()
-        for home_type in self.ALLOWED_HOME_TYPES:
-            d["type"] = home_type
-            self.assert_response_code_is_x(data=d, x=201)
+        d["type"] = self.ALLOWED_HOME_TYPES.nursing
+        self.assert_response_code_is_x(data=d, x=201)
+        d["type"] = self.ALLOWED_HOME_TYPES.private
+        self.assert_response_code_is_x(data=d, x=201)
 
     def test_invalid_home_id_0(self):
         d = self.valid_body_deepcopy()
