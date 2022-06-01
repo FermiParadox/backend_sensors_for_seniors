@@ -4,11 +4,9 @@ from json import JSONDecodeError
 from unittest import TestCase
 from fastapi.testclient import TestClient
 
+from app.model.home import HomeTypes
 from app.secret_handler import API_KEY_VALUE_PAIR
-from app.main import app, PATH_GET_JWT
-from app.model.senior import seniors_table
-from app.model.sensor import sensors_table
-from app.model.home import homes_table, HomeTypes
+from app.main import app, homes_table, sensors_table, seniors_table, PATH_GET_JWT
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
 
@@ -130,10 +128,9 @@ class TestStoreHome(TestCaseWithDeletion):
         # (avoiding global import to prevent accidental bugs due to names' similarity)
         from app.main import PATH_STORE_HOME
         self.PATH_STORE_HOME = PATH_STORE_HOME
-        self.ALLOWED_HOME_TYPES = HomeTypes
         self.valid_home = {"homeId": 23897523,
                            self.key_with_deletion_marker_value: _DELETION_MARKER_STRING,
-                           "type": self.ALLOWED_HOME_TYPES.nursing}
+                           "type": HomeTypes.nursing}
         self.client = TestClient(app)
 
     def valid_body_deepcopy(self):
@@ -144,9 +141,9 @@ class TestStoreHome(TestCaseWithDeletion):
 
     def test_successful(self):
         d = self.valid_body_deepcopy()
-        d["type"] = self.ALLOWED_HOME_TYPES.nursing
+        d["type"] = HomeTypes.nursing
         self.assert_response_code_is_x(data=d, x=201)
-        d["type"] = self.ALLOWED_HOME_TYPES.private
+        d["type"] = HomeTypes.private
         self.assert_response_code_is_x(data=d, x=201)
 
     def test_invalid_home_id_0(self):
