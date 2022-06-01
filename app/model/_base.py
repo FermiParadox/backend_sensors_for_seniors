@@ -1,7 +1,7 @@
 import pymongo as pymongo
 from pydantic.types import conint
 
-from configuration import DB_LINK
+from app.secret_handler import DB_LINK
 
 client = pymongo.MongoClient(DB_LINK)
 db = client["test"]
