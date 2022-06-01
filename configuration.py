@@ -11,7 +11,7 @@ JWT_ALGORITHM = "HS256"
 #                 EDIT THE SECRETS:
 #
 # Edit the following if you don't have the IGNORE_GIT_SECRETS file:
-API_KEY_VALUE_PAIR = {"x-api-key": "askldyraw389y69sdv"}
-JWT_PRIVATE_KEY = "So3jkjKNWKNTktWImksAksdjwLKSPOOB"
+API_KEY_VALUE_PAIR = {"x-api-key": "not-actual-value"}
+JWT_PRIVATE_KEY = "not-actual-key"
 
 DB_LINK = "not-actual-link"
