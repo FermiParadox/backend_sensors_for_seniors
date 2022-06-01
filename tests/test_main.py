@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.model.home import HomeTypes
 from app.secret_handler import API_KEY_VALUE_PAIR
-from app.main import app, homes_table, sensors_table, seniors_table, PATH_GET_JWT
+from app.main import app, homes_table, sensors_table, seniors_table, EndpointPaths
 
 _DELETION_MARKER_STRING = 'test marker string used for deleting test-entries'
 
@@ -45,7 +45,7 @@ class TestEntriesDeletionInDB(ABC):
 
 
 def new_token():
-    r = TestClient(app).get(url=PATH_GET_JWT, json={}, headers=final_extra_header)
+    r = TestClient(app).get(url=EndpointPaths.get_jwt, json={}, headers=final_extra_header)
     return r.headers['token']
 
 
@@ -126,8 +126,7 @@ class TestStoreHome(TestCaseWithDeletion):
 
     def setUp(self) -> None:
         # (avoiding global import to prevent accidental bugs due to names' similarity)
-        from app.main import PATH_STORE_HOME
-        self.PATH_STORE_HOME = PATH_STORE_HOME
+        self.PATH_STORE_HOME = EndpointPaths.store_home
         self.valid_home = {"homeId": 23897523,
                            self.key_with_deletion_marker_value: _DELETION_MARKER_STRING,
                            "type": HomeTypes.nursing}
@@ -190,8 +189,7 @@ class TestStoreSensor(TestCaseWithDeletion):
         return "hardwareVersion"
 
     def setUp(self) -> None:
-        from app.main import PATH_STORE_SENSOR
-        self.PATH_STORE_SENSOR = PATH_STORE_SENSOR
+        self.PATH_STORE_SENSOR = EndpointPaths.store_sensor
         self.client = TestClient(app)
         self.valid_body = self.VALID_SENSOR_EXAMPLE
         self.valid_body.update({self.key_with_deletion_marker_value: _DELETION_MARKER_STRING})
@@ -234,8 +232,7 @@ class TestStoreSenior(TestCaseWithDeletion):
         return "name"
 
     def setUp(self) -> None:
-        from app.main import PATH_STORE_SENIOR
-        self.PATH_STORE_SENIOR = PATH_STORE_SENIOR
+        self.PATH_STORE_SENIOR = EndpointPaths.store_senior
         self.client = TestClient(app)
         self.valid_senior = self.VALID_SENIOR_EXAMPLE
         self.valid_senior.update({self.key_with_deletion_marker_value: _DELETION_MARKER_STRING})
@@ -290,7 +287,6 @@ class TestStoreSenior(TestCaseWithDeletion):
 
 
 class TestAssignSensorToSenior(TestCaseWithDeletion):
-    from app.main import PATH_ASSIGN_SENSOR_TO_SENIOR
     SENIOR_EXAMPLE = TestStoreSenior.VALID_SENIOR_EXAMPLE
     SENSOR_EXAMPLE = TestStoreSensor.VALID_SENSOR_EXAMPLE
     # It's valid only if the previous entries exist
@@ -313,15 +309,13 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
 
     def assert_response_code_is_x(self, data, x):
         self._assert_response_code_is_x(data=data, x=x, client=self.client,
-                                        path=self.PATH_ASSIGN_SENSOR_TO_SENIOR,
+                                        path=EndpointPaths.assign_sensor,
                                         r_type='put')
 
     def test_successful(self):
-        from app.main import PATH_STORE_SENIOR
-        post_response(data=self.SENIOR_EXAMPLE, client=self.client, path=PATH_STORE_SENIOR)
+        post_response(data=self.SENIOR_EXAMPLE, client=self.client, path=EndpointPaths.store_senior)
 
-        from app.main import PATH_STORE_SENSOR
-        post_response(data=self.SENSOR_EXAMPLE, client=self.client, path=PATH_STORE_SENSOR)
+        post_response(data=self.SENSOR_EXAMPLE, client=self.client, path=EndpointPaths.store_sensor)
 
         self.assert_response_code_is_x(data=self.VALID_SENSOR_ASSIGNMENT_EXAMPLE, x=200)
 
@@ -330,12 +324,12 @@ class TestAssignSensorToSenior(TestCaseWithDeletion):
 
     def test_no_token(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
-                                        client=self.client, path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='post',
+                                        client=self.client, path=EndpointPaths.assign_sensor, r_type='post',
                                         headers=API_KEY_VALUE_PAIR)
 
     def test_no_apikey(self):
         self._assert_response_code_is_x(data=self.valid_body_deepcopy(), x=401,
-                                        client=self.client, path=self.PATH_ASSIGN_SENSOR_TO_SENIOR, r_type='post',
+                                        client=self.client, path=EndpointPaths.assign_sensor, r_type='post',
                                         headers=TOKEN_HEADER)
 
 
@@ -349,8 +343,7 @@ class TestGetSenior(TestCaseWithDeletion):
         return "name"
 
     def setUp(self) -> None:
-        from app.main import PATH_GET_SENIOR
-        self.PATH_GET_SENIOR = PATH_GET_SENIOR
+        self.PATH_GET_SENIOR = EndpointPaths.get_senior
         self.client = TestClient(app)
         self.valid_senior = TestStoreSenior.VALID_SENIOR_EXAMPLE
         self.valid_senior.update({self.key_with_deletion_marker_value: _DELETION_MARKER_STRING})
@@ -362,8 +355,7 @@ class TestGetSenior(TestCaseWithDeletion):
         return self._assert_response_code_is_x(data, x, client=self.client, path=self.PATH_GET_SENIOR, r_type='get')
 
     def test_successful(self):
-        from app.main import PATH_STORE_SENIOR
-        post_response(data=self.valid_senior, client=self.client, path=PATH_STORE_SENIOR)
+        post_response(data=self.valid_senior, client=self.client, path=EndpointPaths.store_senior)
         r = self.client.get(url=self.PATH_GET_SENIOR,
                             params={"seniorId": self.valid_senior['seniorId']}, headers=final_extra_header)
         self.assertEqual(200, r.status_code)

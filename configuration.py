@@ -4,7 +4,7 @@ JWT_MIDDLEWARE_ACTIVE = True
 
 # ------------------------------------------------------------------------------------
 JWT_USER_NAME = "backend-SW-Engineer-Candidate"
-JWT_TOKEN_DURATION_HOURS = 1
+JWT_DURATION_HOURS = 1
 JWT_ALGORITHM = "HS256"
 
 # ------------------------------------------------------------------------------------

@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
-
-import jwt
+from enum import Enum
 from fastapi import FastAPI, HTTPException, Request
 from starlette.responses import JSONResponse, Response
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 import uvicorn
+import jwt
 
 from app.model.home import homes_table, Home
 from app.model.senior import seniors_table, Senior
 from app.model.sensor import sensors_table, Sensor
 from app.model.sensor_assignment import SensorAssignment
 from app.secret_handler import API_KEY_VALUE_PAIR, JWT_PRIVATE_KEY
-from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_TOKEN_DURATION_HOURS, \
+from configuration import APIKEY_MIDDLEWARE_ACTIVE, JWT_MIDDLEWARE_ACTIVE, JWT_USER_NAME, JWT_DURATION_HOURS, \
     JWT_ALGORITHM
 
 API_KEY, API_VALUE = list(API_KEY_VALUE_PAIR.items())[0]
@@ -21,29 +21,31 @@ def _raise_http_422(msg):
     raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=msg)
 
 
-PATH_STORE_HOME = '/store-home'
-PATH_STORE_SENSOR = '/store-sensor'
-PATH_STORE_SENIOR = '/store-senior'
-PATH_ASSIGN_SENSOR_TO_SENIOR = "/assign-sensor"
-PATH_GET_SENIOR = "/get-senior"
-PATH_GET_JWT = "/create-jwt"
+class EndpointPaths(str, Enum):
+    store_home = '/store-home'
+    store_sensor = '/store-sensor'
+    store_senior = '/store-senior'
+    assign_sensor = "/assign-sensor"
+    get_senior = "/get-senior"
+    get_jwt = "/create-jwt"
+
 
 app = FastAPI()
 
 
-@app.post(PATH_STORE_HOME)
+@app.post(EndpointPaths.store_home)
 async def store_home(newHome: Home):
     homes_table.insert_one(newHome.dict())
     return JSONResponse(status_code=HTTP_201_CREATED, content=newHome.dict())
 
 
-@app.post(PATH_STORE_SENSOR)
+@app.post(EndpointPaths.store_sensor)
 async def store_sensor(newSensor: Sensor):
     sensors_table.insert_one(newSensor.dict())
     return JSONResponse(status_code=HTTP_201_CREATED, content=newSensor.dict())
 
 
-@app.post(PATH_STORE_SENIOR)
+@app.post(EndpointPaths.store_senior)
 async def store_senior(newSenior: Senior):
     d = newSenior.dict()
     await _raise_if_home_doesnt_exist(homeId=d["homeId"])
@@ -61,9 +63,8 @@ async def _raise_if_home_doesnt_exist(homeId) -> None:
         _raise_http_422(msg=f"Can't assign senior to home ID {homeId} (home doesn't exist).")
 
 
-# TODO think carefully race-conditions here
-#   eg. user1 assigning sensors, while user2 changes tables: would mess _raise_...
-@app.put(PATH_ASSIGN_SENSOR_TO_SENIOR)
+# TODO mongo server-side (race conditions + delay)
+@app.put(EndpointPaths.assign_sensor)
 async def assign_sensor(sensorAssignment: SensorAssignment):
     d = sensorAssignment.dict()
     sensorId = d["sensorId"]
@@ -92,7 +93,7 @@ async def _raise_sensor_doesnt_exist(sensorId) -> None:
         _raise_http_422(msg=f"Sensor ID {sensorId} doesn't exist.")
 
 
-@app.get(PATH_GET_SENIOR)
+@app.get(EndpointPaths.get_senior)
 async def get_senior(seniorId: int):
     if not seniors_table.find_one({"seniorId": seniorId}):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND,
@@ -102,38 +103,28 @@ async def get_senior(seniorId: int):
     return match
 
 
-@app.get(PATH_GET_JWT)
+@app.get(EndpointPaths.get_jwt)
 async def create_jwt():
     return JSONResponse(status_code=HTTP_201_CREATED, headers={"token": signed_jwt_token()})
 
 
-def signed_jwt_token(duration_h=JWT_TOKEN_DURATION_HOURS):
+def signed_jwt_token(duration_h=JWT_DURATION_HOURS):
     expiration = datetime.utcnow() + timedelta(hours=duration_h)
     d = {"username": JWT_USER_NAME, "exp": expiration}
     # (function output can be tested here: https://jwt.io/ ; displays local time)
     return jwt.encode(payload=d, key=JWT_PRIVATE_KEY, algorithm=JWT_ALGORITHM)
 
 
-PATHS_PROTECTED_WITH_API_KEY = {PATH_STORE_HOME,
-                                PATH_STORE_SENSOR,
-                                PATH_STORE_SENIOR,
-                                PATH_ASSIGN_SENSOR_TO_SENIOR,
-                                PATH_GET_SENIOR
-                                }
-
-PATHS_PROTECTED_WITH_JWT = {PATH_STORE_HOME,
-                            PATH_STORE_SENSOR,
-                            PATH_STORE_SENIOR,
-                            PATH_ASSIGN_SENSOR_TO_SENIOR,
-                            PATH_GET_SENIOR}
+PATHS_PROTECTED_WITH_JWT = {EndpointPaths.store_home,
+                            EndpointPaths.store_senior,
+                            EndpointPaths.store_sensor,
+                            EndpointPaths.assign_sensor,
+                            EndpointPaths.get_senior}
 
 
 @app.middleware("http")
 async def middleware_header_api_key(req: Request, call_next):
     if not APIKEY_MIDDLEWARE_ACTIVE:
-        return await call_next(req)
-
-    if not is_protected_path(req, paths_protected=PATHS_PROTECTED_WITH_API_KEY):
         return await call_next(req)
 
     try:
