@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Iterable
+
 from fastapi import FastAPI, HTTPException, Request
 from starlette.responses import JSONResponse, Response
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
@@ -108,7 +110,7 @@ async def create_jwt():
     return JSONResponse(status_code=HTTP_201_CREATED, headers={"token": signed_jwt_token()})
 
 
-def signed_jwt_token(duration_h=JWT_DURATION_HOURS):
+def signed_jwt_token(duration_h: float = JWT_DURATION_HOURS) -> str:
     expiration = datetime.utcnow() + timedelta(hours=duration_h)
     d = {"username": JWT_USER_NAME, "exp": expiration}
     # (function output can be tested here: https://jwt.io/ ; displays local time)
@@ -159,7 +161,7 @@ async def middleware_jwt(req: Request, call_next):
     return Response(status_code=401, content='Token failed.')
 
 
-def is_protected_path(req, paths_protected) -> bool:
+def is_protected_path(req: Request, paths_protected: Iterable) -> bool:
     for p in paths_protected:
         if endpoint_path_matches(p, req=req):
             return True
