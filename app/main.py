@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Iterable, Dict
 from fastapi import FastAPI, HTTPException, Request
+from starlette.datastructures import Headers
 from starlette.responses import JSONResponse, Response
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 import uvicorn
@@ -160,7 +161,7 @@ async def middleware_jwt(req: Request, call_next):
     return Response(status_code=401, content='Token failed.')
 
 
-def token_header_exists(headers) -> bool:
+def token_header_exists(headers: Headers) -> bool:
     return "token" not in headers
 
 
