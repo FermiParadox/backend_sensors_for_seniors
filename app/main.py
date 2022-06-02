@@ -147,7 +147,7 @@ async def middleware_jwt(req: Request, call_next):
         return await call_next(req)
 
     headers = req.headers
-    if "token" not in headers:
+    if token_header_exists(headers=headers):
         return Response(status_code=401, content="No 'token' key in headers.")
 
     token = headers["token"]
@@ -158,6 +158,10 @@ async def middleware_jwt(req: Request, call_next):
     except jwt.PyJWTError:
         pass
     return Response(status_code=401, content='Token failed.')
+
+
+def token_header_exists(headers) -> bool:
+    return "token" not in headers
 
 
 def is_protected_path(req: Request, paths_protected: Iterable) -> bool:
