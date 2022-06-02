@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Iterable
-
+from typing import Iterable, Dict
 from fastapi import FastAPI, HTTPException, Request
 from starlette.responses import JSONResponse, Response
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
@@ -168,7 +167,7 @@ def is_protected_path(req: Request, paths_protected: Iterable) -> bool:
     return False
 
 
-def endpoint_path_matches(endpoint_path: EndpointPath, req) -> bool:
+def endpoint_path_matches(endpoint_path: EndpointPath, req: Request) -> bool:
     """Compare requested path with stored endpoint path.
 
     If this is matched:
@@ -182,7 +181,7 @@ def endpoint_path_matches(endpoint_path: EndpointPath, req) -> bool:
     return requested_path.startswith(p)
 
 
-def token_user_correct(token) -> bool:
+def token_user_correct(token: Dict[str]) -> bool:
     return token["username"] == JWT_USER_NAME
 
 
