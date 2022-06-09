@@ -1,5 +1,4 @@
 from enum import Enum
-
 from pydantic import BaseModel
 
 from app.model._base import db, ConstrainedIntMongo
