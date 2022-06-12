@@ -187,7 +187,7 @@ def endpoint_path_matches(endpoint_path: EndpointPath, req: Request) -> bool:
     return requested_path.startswith(p)
 
 
-def token_user_correct(token: Dict[str]) -> bool:
+def token_user_correct(token: Dict) -> bool:
     return token["username"] == JWT_USER_NAME
 
 
