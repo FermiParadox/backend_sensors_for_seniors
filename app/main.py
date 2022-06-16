@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_201_CREATED, HTTP_404_NOT_FOUND
 
 import uvicorn
-import jwt
+import jwt  # requires PyJWT, despite not mentioning it
 
 from app.model.home import homes_table, Home
 from app.model.senior import seniors_table, Senior
